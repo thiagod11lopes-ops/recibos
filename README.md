@@ -49,6 +49,14 @@ npm run dev
 
 Abra [http://localhost:5173](http://localhost:5173) no navegador.
 
+## Acesso online
+
+O sistema está publicado no GitHub Pages:
+
+**https://thiagod11lopes-ops.github.io/recibos/**
+
+A cada push na branch `main`, o deploy é atualizado automaticamente.
+
 ## Build
 
 ```bash

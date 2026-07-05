@@ -22,7 +22,7 @@
   "bugs": {
     "url": "https://github.com/thiagod11lopes-ops/recibos/issues"
   },
-  "homepage": "https://github.com/thiagod11lopes-ops/recibos#readme",
+  "homepage": "https://thiagod11lopes-ops.github.io/recibos/",
   "engines": {
     "node": ">=20"
   },
