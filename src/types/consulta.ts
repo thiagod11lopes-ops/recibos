@@ -10,6 +10,7 @@ export interface ConsultaPermissions {
   propertyFinancials: boolean
   paymentSummary: boolean
   progressBar: boolean
+  paymentTableExport: boolean
   installmentTable: boolean
   showReference: boolean
   showDueDate: boolean
@@ -44,6 +45,7 @@ export const DEFAULT_CONSULTA_PERMISSIONS: ConsultaPermissions = {
   propertyFinancials: true,
   paymentSummary: true,
   progressBar: true,
+  paymentTableExport: false,
   installmentTable: true,
   showReference: true,
   showDueDate: true,
@@ -75,6 +77,7 @@ export const PERMISSION_GROUPS: {
     items: [
       { key: 'paymentSummary', label: 'Totais pagos e pendentes' },
       { key: 'progressBar', label: 'Barra de progresso' },
+      { key: 'paymentTableExport', label: 'Gerar Tabela de Pagamento' },
     ],
   },
   {

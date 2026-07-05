@@ -1,9 +1,11 @@
-import { CheckCircle2, Clock, Eye, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
 import type { PaymentStatus } from '../utils/installmentStatus'
+import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
-import { Card } from './ui'
+import { ExportFormatModal } from './ExportFormatModal'
+import { Button, Card } from './ui'
 
 interface ConsultaTabProps {
   permissions: ConsultaPermissions
@@ -53,6 +55,7 @@ export function ConsultaTab({
 }: ConsultaTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   const filteredRows = useMemo(() => {
     if (!publishedData || !permissions.installmentTable) return []
@@ -153,52 +156,83 @@ export function ConsultaTab({
         </Card>
       )}
 
-      {permissions.paymentSummary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Parcelas pagas
-            </p>
-            <p className="mt-2 text-3xl font-bold text-emerald-400">
-              {summary.paidCount}
-            </p>
-            <p className="mt-1 text-sm text-zinc-400">{summary.paidTotalFormatted}</p>
-          </div>
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Parcelas pendentes
-            </p>
-            <p className="mt-2 text-3xl font-bold text-amber-400">
-              {summary.pendingCount}
-            </p>
-            <p className="mt-1 text-sm text-zinc-400">
-              {summary.pendingTotalFormatted}
-            </p>
-          </div>
-          {permissions.progressBar && (
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-5 sm:col-span-2">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                Progresso
-              </p>
-              <div className="mt-3 flex items-end justify-between">
-                <p className="text-3xl font-bold text-white">
-                  {Math.round((summary.paidCount / totalCount) * 100)}%
+      {(permissions.paymentSummary || permissions.paymentTableExport) && (
+        <div className="space-y-4">
+          {permissions.paymentSummary && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Parcelas pagas
                 </p>
-                <p className="text-sm text-zinc-400">
-                  {summary.paidCount} de {totalCount} parcelas
+                <p className="mt-2 text-3xl font-bold text-emerald-400">
+                  {summary.paidCount}
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">{summary.paidTotalFormatted}</p>
+              </div>
+              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                  Parcelas pendentes
+                </p>
+                <p className="mt-2 text-3xl font-bold text-amber-400">
+                  {summary.pendingCount}
+                </p>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {summary.pendingTotalFormatted}
                 </p>
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/6">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-                  style={{
-                    width: `${(summary.paidCount / totalCount) * 100}%`,
-                  }}
-                />
-              </div>
+              {permissions.progressBar && (
+                <div className="rounded-2xl border border-white/8 bg-white/3 p-5 sm:col-span-2">
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                    Progresso
+                  </p>
+                  <div className="mt-3 flex items-end justify-between">
+                    <p className="text-3xl font-bold text-white">
+                      {Math.round((summary.paidCount / totalCount) * 100)}%
+                    </p>
+                    <p className="text-sm text-zinc-400">
+                      {summary.paidCount} de {totalCount} parcelas
+                    </p>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/6">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                      style={{
+                        width: `${(summary.paidCount / totalCount) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {permissions.paymentTableExport && (
+            <div className="flex justify-end">
+              <Button variant="primary" size="sm" onClick={() => setExportModalOpen(true)}>
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                Gerar Tabela de Pagamento
+              </Button>
             </div>
           )}
         </div>
+      )}
+
+      {permissions.paymentTableExport && (
+        <ExportFormatModal
+          open={exportModalOpen}
+          onClose={() => setExportModalOpen(false)}
+          paidCount={summary.paidCount}
+          pendingCount={summary.pendingCount}
+          onSelect={(options) =>
+            exportPaymentTable(
+              options,
+              seller,
+              buyer,
+              property,
+              publishedData.rows,
+            )
+          }
+        />
       )}
 
       {permissions.installmentTable && (
@@ -306,6 +340,7 @@ export function ConsultaTab({
 
       {!showContractSection &&
         !permissions.paymentSummary &&
+        !permissions.paymentTableExport &&
         !permissions.installmentTable && (
           <Card>
             <p className="text-center text-sm text-zinc-500">
