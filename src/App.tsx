@@ -1,6 +1,16 @@
-import { Archive, Download, FilePlus2, Layers, ListChecks } from 'lucide-react'
-import { useState } from 'react'
+import {
+  Archive,
+  Download,
+  Eye,
+  FilePlus2,
+  Layers,
+  ListChecks,
+  Settings,
+} from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AdministrationTab } from './components/AdministrationTab'
 import { AllReceiptsTab } from './components/AllReceiptsTab'
+import { ConsultaTab } from './components/ConsultaTab'
 import { Header } from './components/Header'
 import { InstallmentsTable } from './components/InstallmentsTable'
 import { PaymentStatusTab } from './components/PaymentStatusTab'
@@ -8,11 +18,12 @@ import { ReceiptForm } from './components/ReceiptForm'
 import { ReceiptPreview } from './components/ReceiptPreview'
 import { Tabs } from './components/Tabs'
 import { Button } from './components/ui'
+import { useConsultaSettings } from './hooks/useConsultaSettings'
 import { usePaymentStatus } from './hooks/usePaymentStatus'
 import { useReceiptForm } from './hooks/useReceiptForm'
 import { archivedReceipts } from './utils/monthlyReceipts'
-import { downloadReceiptPdf } from './utils/pdfGenerator'
 import { todayISO } from './utils/formatters'
+import { downloadReceiptPdf } from './utils/pdfGenerator'
 
 const APP_TABS = [
   { id: 'create', label: 'Novo Recibo', icon: FilePlus2 },
@@ -28,14 +39,34 @@ const APP_TABS = [
     icon: ListChecks,
     badge: 72,
   },
+  { id: 'admin', label: 'Administração', icon: Settings },
+  { id: 'consulta', label: 'Consulta', icon: Eye },
 ] as const
 
 type AppTab = (typeof APP_TABS)[number]['id']
 
+function useConsultaMode() {
+  const [isConsultaMode, setIsConsultaMode] = useState(
+    () => window.location.hash === '#consulta',
+  )
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setIsConsultaMode(window.location.hash === '#consulta')
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
+  return isConsultaMode
+}
+
 export default function App() {
+  const isConsultaMode = useConsultaMode()
   const [activeTab, setActiveTab] = useState<AppTab>('create')
 
   const paymentStatus = usePaymentStatus()
+  const consultaSettings = useConsultaSettings()
 
   const {
     data,
@@ -64,6 +95,16 @@ export default function App() {
     paymentStatus.markAsPaid(installment.number, todayISO())
   }
 
+  const handlePublishConsulta = () =>
+    consultaSettings.publishForConsulta({
+      seller: data.seller,
+      buyer: data.buyer,
+      property: data.property,
+      rows: paymentStatus.rows,
+      summary: paymentStatus.summary,
+      totalCount: paymentStatus.totalCount,
+    })
+
   const activeReceipt = selectedInstallment
     ? {
         seller: data.seller,
@@ -90,6 +131,22 @@ export default function App() {
         })
       }, index * 300)
     })
+  }
+
+  if (isConsultaMode) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f]">
+        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_0%,rgba(99,102,241,0.08),transparent)]" />
+        <Header subtitle="Consulta de pagamentos" />
+        <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <ConsultaTab
+            permissions={consultaSettings.permissions}
+            publishedData={consultaSettings.publishedData}
+            isPublicMode
+          />
+        </main>
+      </div>
+    )
   }
 
   return (
@@ -165,7 +222,7 @@ export default function App() {
           </>
         ) : activeTab === 'archive' ? (
           <AllReceiptsTab />
-        ) : (
+        ) : activeTab === 'status' ? (
           <PaymentStatusTab
             rows={paymentStatus.rows}
             summary={paymentStatus.summary}
@@ -175,6 +232,20 @@ export default function App() {
             seller={data.seller}
             buyer={data.buyer}
             property={data.property}
+          />
+        ) : activeTab === 'admin' ? (
+          <AdministrationTab
+            permissions={consultaSettings.permissions}
+            publishedData={consultaSettings.publishedData}
+            consultaUrl={consultaSettings.consultaUrl}
+            onPermissionChange={consultaSettings.setPermission}
+            onResetPermissions={consultaSettings.resetPermissions}
+            onPublish={handlePublishConsulta}
+          />
+        ) : (
+          <ConsultaTab
+            permissions={consultaSettings.permissions}
+            publishedData={consultaSettings.publishedData}
           />
         )}
       </main>
