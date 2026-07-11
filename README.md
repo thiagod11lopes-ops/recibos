@@ -77,18 +77,66 @@ npm run preview
 - React 19 + TypeScript
 - Vite 8
 - Tailwind CSS 4
+- Supabase (PostgreSQL + Realtime)
 - jsPDF + jspdf-autotable
 - Lucide React
+
+## Supabase
+
+O sistema persiste contrato, status de pagamento, permissões e dados publicados para consulta.
+
+### Configuração local
+
+1. Crie um projeto em [Supabase](https://supabase.com/dashboard)
+2. No **SQL Editor**, execute o arquivo [`supabase/schema.sql`](supabase/schema.sql)
+3. Em **Project Settings → API**, copie a URL e a `anon` key
+4. Copie `.env.example` para `.env` e preencha:
+
+```bash
+VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=sua_anon_key
+VITE_SUPABASE_CONTRACT_ID=default
+```
+
+5. Reinicie `npm run dev`
+
+### Tabela `contracts`
+
+| Coluna | Tipo | Conteúdo |
+|--------|------|----------|
+| `id` | text | ID do contrato (`default`) |
+| `seller` | jsonb | Vendedor |
+| `buyer` | jsonb | Comprador |
+| `property` | jsonb | Imóvel |
+| `paid_numbers` | integer[] | Parcelas pagas |
+| `payment_dates` | jsonb | Datas de pagamento |
+| `consulta_permissions` | jsonb | Visibilidade na consulta |
+| `published_consulta` | jsonb | Snapshot publicado |
+| `updated_at` | timestamptz | Última atualização |
+
+### GitHub Pages + Supabase
+
+Adicione os secrets em **Settings → Secrets → Actions**:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_CONTRACT_ID` (opcional; padrão `default`)
+
+Sem as variáveis, o sistema funciona em modo **local** (dados no navegador).
 
 ## Estrutura do projeto
 
 ```
 src/
 ├── components/     # UI e abas da aplicação
+├── context/        # Provider do banco de dados
+├── supabase/       # Cliente e repositório Supabase
 ├── data/           # Dados padrão do contrato
 ├── hooks/          # Estado do formulário e pagamentos
 ├── types/          # Tipos TypeScript
 └── utils/          # PDF, HTML, formatadores e exportação
+supabase/
+└── schema.sql      # DDL + RLS + Realtime
 ```
 
 ## Publicar no GitHub

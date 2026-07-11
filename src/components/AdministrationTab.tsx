@@ -4,14 +4,18 @@ import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consul
 import { PERMISSION_GROUPS } from '../types/consulta'
 import { formatDateLong } from '../utils/formatters'
 import { Button, Card } from './ui'
+import { DatabaseStatusBanner } from './DatabaseStatusBanner'
 
 interface AdministrationTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
   consultaUrl: string
+  storage: 'supabase' | 'local'
+  loading: boolean
+  error: string | null
   onPermissionChange: (key: keyof ConsultaPermissions, value: boolean) => void
   onResetPermissions: () => void
-  onPublish: () => ConsultaPublishedData
+  onPublish: () => void
 }
 
 function Toggle({
@@ -50,6 +54,9 @@ export function AdministrationTab({
   permissions,
   publishedData,
   consultaUrl,
+  storage,
+  loading,
+  error,
   onPermissionChange,
   onResetPermissions,
   onPublish,
@@ -80,6 +87,8 @@ export function AdministrationTab({
           os dados atualizados.
         </p>
       </div>
+
+      <DatabaseStatusBanner loading={loading} error={error} storage={storage} />
 
       <Card title="Link de consulta para usuários">
         <p className="mb-4 text-sm text-zinc-400">

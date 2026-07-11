@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
+import { useContractDatabase } from '../context/ContractDatabaseContext'
 import {
   generateInstallmentStatusRows,
   getPaymentSummary,
@@ -7,26 +8,24 @@ import {
 } from '../utils/installmentStatus'
 import { todayISO } from '../utils/formatters'
 
-const PAID_UP_TO = 18
-
-function createInitialPaidNumbers(): Set<number> {
-  return new Set(Array.from({ length: PAID_UP_TO }, (_, i) => i + 1))
-}
-
 const baseRows = generateInstallmentStatusRows()
 
 export function usePaymentStatus() {
-  const [paidNumbers, setPaidNumbers] = useState<Set<number>>(createInitialPaidNumbers)
-  const [paymentDates, setPaymentDates] = useState<Record<number, string>>({})
+  const { contract, markAsPaid, togglePaid } = useContractDatabase()
+
+  const paidNumbers = useMemo(
+    () => new Set(contract.paidNumbers),
+    [contract.paidNumbers],
+  )
 
   const rows = useMemo<InstallmentStatusRow[]>(
     () =>
       baseRows.map((row) => ({
         ...row,
         status: (paidNumbers.has(row.number) ? 'pago' : 'pendente') as PaymentStatus,
-        paymentDate: paymentDates[row.number],
+        paymentDate: contract.paymentDates[String(row.number)],
       })),
-    [paidNumbers, paymentDates],
+    [paidNumbers, contract.paymentDates],
   )
 
   const summary = useMemo(() => getPaymentSummary(rows), [rows])
@@ -36,32 +35,19 @@ export function usePaymentStatus() {
     [paidNumbers],
   )
 
-  const markAsPaid = useCallback((number: number, paymentDate: string = todayISO()) => {
-    setPaidNumbers((prev) => {
-      const next = new Set(prev)
-      next.add(number)
-      return next
-    })
-    setPaymentDates((prev) => ({ ...prev, [number]: paymentDate }))
-  }, [])
+  const markAsPaidWithDate = useCallback(
+    (number: number, paymentDate: string = todayISO()) => {
+      void markAsPaid(number, paymentDate)
+    },
+    [markAsPaid],
+  )
 
-  const togglePaid = useCallback((number: number) => {
-    setPaidNumbers((prev) => {
-      const next = new Set(prev)
-      if (next.has(number)) {
-        next.delete(number)
-        setPaymentDates((dates) => {
-          const updated = { ...dates }
-          delete updated[number]
-          return updated
-        })
-      } else {
-        next.add(number)
-        setPaymentDates((dates) => ({ ...dates, [number]: todayISO() }))
-      }
-      return next
-    })
-  }, [])
+  const togglePaidWithDate = useCallback(
+    (number: number) => {
+      void togglePaid(number, todayISO())
+    },
+    [togglePaid],
+  )
 
   const getNextPendingInstallment = useCallback(
     (existingNumbers: number[]): InstallmentStatusRow | null =>
@@ -88,8 +74,8 @@ export function usePaymentStatus() {
     summary,
     totalCount: baseRows.length,
     isPaid,
-    markAsPaid,
-    togglePaid,
+    markAsPaid: markAsPaidWithDate,
+    togglePaid: togglePaidWithDate,
     getNextPendingInstallment,
     getNextPendingInstallments,
   }

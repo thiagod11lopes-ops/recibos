@@ -17,6 +17,7 @@ import { PaymentStatusTab } from './components/PaymentStatusTab'
 import { ReceiptForm } from './components/ReceiptForm'
 import { ReceiptPreview } from './components/ReceiptPreview'
 import { Tabs } from './components/Tabs'
+import { DatabaseLoadingGate, DatabaseStatusBanner } from './components/DatabaseStatusBanner'
 import { Button } from './components/ui'
 import { useConsultaSettings } from './hooks/useConsultaSettings'
 import { usePaymentStatus } from './hooks/usePaymentStatus'
@@ -135,21 +136,29 @@ export default function App() {
 
   if (isConsultaMode) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f]">
-        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_0%,rgba(99,102,241,0.08),transparent)]" />
-        <Header subtitle="Consulta de pagamentos" />
-        <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <ConsultaTab
-            permissions={consultaSettings.permissions}
-            publishedData={consultaSettings.publishedData}
-            isPublicMode
-          />
-        </main>
-      </div>
+      <DatabaseLoadingGate loading={consultaSettings.loading}>
+        <div className="min-h-screen bg-[#0a0a0f]">
+          <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_0%,rgba(99,102,241,0.08),transparent)]" />
+          <Header subtitle="Consulta de pagamentos" />
+          <main className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <DatabaseStatusBanner
+              loading={consultaSettings.loading}
+              error={consultaSettings.error}
+              storage={consultaSettings.storage}
+            />
+            <ConsultaTab
+              permissions={consultaSettings.permissions}
+              publishedData={consultaSettings.publishedData}
+              isPublicMode
+            />
+          </main>
+        </div>
+      </DatabaseLoadingGate>
     )
   }
 
   return (
+    <DatabaseLoadingGate loading={consultaSettings.loading}>
     <div className="min-h-screen bg-[#0a0a0f]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_0%,rgba(99,102,241,0.08),transparent)]" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_50%_40%_at_10%_100%,rgba(139,92,246,0.06),transparent)]" />
@@ -238,6 +247,9 @@ export default function App() {
             permissions={consultaSettings.permissions}
             publishedData={consultaSettings.publishedData}
             consultaUrl={consultaSettings.consultaUrl}
+            storage={consultaSettings.storage}
+            loading={consultaSettings.loading}
+            error={consultaSettings.error}
             onPermissionChange={consultaSettings.setPermission}
             onResetPermissions={consultaSettings.resetPermissions}
             onPublish={handlePublishConsulta}
@@ -250,5 +262,6 @@ export default function App() {
         )}
       </main>
     </div>
+    </DatabaseLoadingGate>
   )
 }
