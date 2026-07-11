@@ -1,5 +1,6 @@
 import { defaultReceiptData } from '../data/defaultReceipt'
 import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
+import { mergeHistoricalPaymentDates, buildHistoricalPaymentDates } from '../utils/installmentStatus'
 import {
   CONTRACT_ID,
   CONTRACTS_TABLE,
@@ -38,7 +39,7 @@ export function createDefaultContractDocument(): ContractDocument {
     buyer,
     property,
     paidNumbers: [...INITIAL_PAID_NUMBERS],
-    paymentDates: {},
+    paymentDates: mergeHistoricalPaymentDates(),
     consultaPermissions: loadLegacyPermissions(),
     publishedConsulta: loadLegacyPublished(),
     updatedAt: null,
@@ -56,7 +57,7 @@ function normalizeContractDocument(
     paidNumbers: Array.isArray(data.paidNumbers)
       ? data.paidNumbers
       : defaults.paidNumbers,
-    paymentDates: data.paymentDates ?? defaults.paymentDates,
+    paymentDates: mergeHistoricalPaymentDates(data.paymentDates ?? {}),
     consultaPermissions: {
       ...defaults.consultaPermissions,
       ...data.consultaPermissions,
@@ -126,7 +127,44 @@ export function loadLocalContractDocument(): ContractDocument {
 }
 
 export function saveLocalContractDocument(document: ContractDocument): void {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(document))
+  localStorage.setItem(
+    LOCAL_STORAGE_KEY,
+    JSON.stringify({
+      ...document,
+      paymentDates: mergeHistoricalPaymentDates(document.paymentDates),
+    }),
+  )
+}
+
+function needsHistoricalPaymentBackfill(
+  paymentDates: Record<string, string>,
+): boolean {
+  const historical = buildHistoricalPaymentDates()
+  return Object.entries(historical).some(
+    ([number, dueDate]) => paymentDates[number] !== dueDate,
+  )
+}
+
+async function backfillHistoricalPaymentDates(
+  document: ContractDocument,
+  rawPaymentDates: Record<string, string>,
+): Promise<ContractDocument> {
+  const paymentDates = mergeHistoricalPaymentDates(rawPaymentDates)
+  if (!needsHistoricalPaymentBackfill(rawPaymentDates)) {
+    return { ...document, paymentDates }
+  }
+
+  const supabase = getSupabaseClient()
+  const { error } = await supabase
+    .from(CONTRACTS_TABLE)
+    .update({
+      payment_dates: paymentDates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', CONTRACT_ID)
+
+  if (error) throw new Error(error.message)
+  return { ...document, paymentDates }
 }
 
 export async function ensureRemoteContractDocument(): Promise<ContractDocument> {
@@ -140,7 +178,9 @@ export async function ensureRemoteContractDocument(): Promise<ContractDocument> 
   if (error) throw new Error(error.message)
 
   if (data) {
-    return rowToDocument(data as ContractRow)
+    const row = data as ContractRow
+    const document = rowToDocument(row)
+    return backfillHistoricalPaymentDates(document, row.payment_dates ?? {})
   }
 
   const initial = loadLocalContractDocument()

@@ -30,6 +30,9 @@ const MONTH_NAMES = [
 
 const PAID_UP_TO = 18
 
+/** Parcelas com vencimento até esta data usam o vencimento como data de pagamento. */
+export const HISTORICAL_PAYMENT_CUTOFF = '2026-06-15'
+
 function toISODate(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
@@ -67,6 +70,31 @@ export function generateInstallmentStatusRows(
 }
 
 export const installmentStatusRows = generateInstallmentStatusRows()
+
+/**
+ * Datas de pagamento históricas: iguais ao vencimento até 15/06/2026.
+ * Parcelas a partir de 15/07/2026 não entram aqui — são preenchidas ao gerar recibo.
+ */
+export function buildHistoricalPaymentDates(
+  rows: InstallmentStatusRow[] = generateInstallmentStatusRows(),
+): Record<string, string> {
+  const dates: Record<string, string> = {}
+  for (const row of rows) {
+    if (row.dueDate <= HISTORICAL_PAYMENT_CUTOFF) {
+      dates[String(row.number)] = row.dueDate
+    }
+  }
+  return dates
+}
+
+export function mergeHistoricalPaymentDates(
+  paymentDates: Record<string, string> = {},
+): Record<string, string> {
+  return {
+    ...paymentDates,
+    ...buildHistoricalPaymentDates(),
+  }
+}
 
 export function getNextPendingInstallment(
   existingNumbers: number[],
