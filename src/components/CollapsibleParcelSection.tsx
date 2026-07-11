@@ -15,12 +15,27 @@ export function CollapsibleParcelSection({
   children,
 }: CollapsibleParcelSectionProps) {
   const [expanded, setExpanded] = useState(false)
+  const [allowPortraitTable, setAllowPortraitTable] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
   const { isCompactDevice, isLandscape } = useViewportMode()
 
-  const showRotateModal = expanded && isCompactDevice && !isLandscape
-  const showTable = expanded && (!isCompactDevice || isLandscape)
+  const showRotateModal =
+    expanded && isCompactDevice && !isLandscape && !allowPortraitTable
+  const showTable =
+    expanded && (!isCompactDevice || isLandscape || allowPortraitTable)
   const immersive = showTable && isCompactDevice && isLandscape
+
+  useEffect(() => {
+    if (!expanded) {
+      setAllowPortraitTable(false)
+    }
+  }, [expanded])
+
+  useEffect(() => {
+    if (isLandscape) {
+      setAllowPortraitTable(false)
+    }
+  }, [isLandscape])
 
   useEffect(() => {
     if (!immersive || !sectionRef.current) return
@@ -116,7 +131,10 @@ export function CollapsibleParcelSection({
 
       {immersive && <div aria-hidden className="h-0" />}
 
-      <RotateToLandscapeModal open={showRotateModal} />
+      <RotateToLandscapeModal
+        open={showRotateModal}
+        onCancel={() => setAllowPortraitTable(true)}
+      />
     </>
   )
 }

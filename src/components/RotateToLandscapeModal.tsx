@@ -2,9 +2,13 @@ import { Smartphone } from 'lucide-react'
 
 interface RotateToLandscapeModalProps {
   open: boolean
+  onCancel: () => void
 }
 
-export function RotateToLandscapeModal({ open }: RotateToLandscapeModalProps) {
+export function RotateToLandscapeModal({
+  open,
+  onCancel,
+}: RotateToLandscapeModalProps) {
   if (!open) return null
 
   return (
@@ -43,6 +47,14 @@ export function RotateToLandscapeModal({ open }: RotateToLandscapeModalProps) {
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-400" />
           Aguardando orientação paisagem
         </div>
+
+        <button
+          type="button"
+          onClick={onCancel}
+          className="relative mt-6 w-full rounded-xl border border-red-500/30 bg-red-500/15 px-4 py-3 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/25 hover:text-red-300"
+        >
+          Cancelar
+        </button>
       </div>
     </div>
   )
