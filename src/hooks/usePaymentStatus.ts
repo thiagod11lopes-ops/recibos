@@ -11,7 +11,7 @@ import { todayISO } from '../utils/formatters'
 const baseRows = generateInstallmentStatusRows()
 
 export function usePaymentStatus() {
-  const { contract, markAsPaid, togglePaid } = useContractDatabase()
+  const { contract, markAsPaid, togglePaid, unmarkPaid } = useContractDatabase()
 
   const paidNumbers = useMemo(
     () => new Set(contract.paidNumbers),
@@ -76,6 +76,7 @@ export function usePaymentStatus() {
     isPaid,
     markAsPaid: markAsPaidWithDate,
     togglePaid: togglePaidWithDate,
+    unmarkPaid,
     getNextPendingInstallment,
     getNextPendingInstallments,
   }

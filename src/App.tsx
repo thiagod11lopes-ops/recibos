@@ -82,6 +82,7 @@ export default function App() {
     addInstallment,
     updateInstallment,
     removeInstallment,
+    removeInstallments,
     generateBatch,
     generateReceipt,
     nextPendingInstallment,
@@ -205,9 +206,20 @@ export default function App() {
                   totalInstallments={data.property.installmentCount}
                   selectedId={selectedId}
                   nextPending={nextPendingInstallment}
+                  paidRows={paymentStatus.rows}
                   onSelect={setSelectedId}
                   onAdd={addInstallment}
                   onRemove={removeInstallment}
+                  onRemoveSelected={removeInstallments}
+                  onRemovePaid={(numbers) => {
+                    void paymentStatus.unmarkPaid(numbers)
+                    const idsToRemove = data.installments
+                      .filter((item) => numbers.includes(item.number))
+                      .map((item) => item.id)
+                    if (idsToRemove.length > 0) {
+                      removeInstallments(idsToRemove)
+                    }
+                  }}
                   onUpdate={updateInstallment}
                   onGenerateBatch={generateBatch}
                   onGenerateReceipt={handleGenerateReceipt}

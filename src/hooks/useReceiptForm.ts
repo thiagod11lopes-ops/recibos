@@ -94,6 +94,18 @@ export function useReceiptForm({
     })
   }, [])
 
+  const removeInstallments = useCallback((ids: string[]) => {
+    if (ids.length === 0) return
+    const idSet = new Set(ids)
+    setInstallments((prev) => {
+      const filtered = prev.filter((item) => !idSet.has(item.id))
+      setSelectedId((current) =>
+        idSet.has(current) ? (filtered[0]?.id ?? '') : current,
+      )
+      return filtered
+    })
+  }, [])
+
   const generateBatch = useCallback(
     (count: number) => {
       const existingNumbers = installments.map((item) => item.number)
@@ -145,6 +157,7 @@ export function useReceiptForm({
     addInstallment,
     updateInstallment,
     removeInstallment,
+    removeInstallments,
     generateBatch,
     generateReceipt,
     nextPendingInstallment,

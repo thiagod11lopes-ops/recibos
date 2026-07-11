@@ -47,6 +47,7 @@ interface ContractDatabaseContextValue {
   ) => Promise<void>
   markAsPaid: (number: number, paymentDate: string) => Promise<void>
   togglePaid: (number: number, paymentDate: string) => Promise<void>
+  unmarkPaid: (numbers: number[]) => Promise<void>
   setPermission: (key: keyof ConsultaPermissions, value: boolean) => Promise<void>
   resetPermissions: () => Promise<void>
   publishForConsulta: (input: PublishInput) => Promise<ConsultaPublishedData>
@@ -202,6 +203,22 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
     [contract.paidNumbers, contract.paymentDates, patchContract],
   )
 
+  const unmarkPaid = useCallback(
+    async (numbers: number[]) => {
+      if (numbers.length === 0) return
+      const toRemove = new Set(numbers)
+      const paidNumbers = contract.paidNumbers.filter(
+        (item) => !toRemove.has(item),
+      )
+      const paymentDates = { ...contract.paymentDates }
+      for (const number of numbers) {
+        delete paymentDates[String(number)]
+      }
+      await patchContract({ paidNumbers, paymentDates })
+    },
+    [contract.paidNumbers, contract.paymentDates, patchContract],
+  )
+
   const setPermission = useCallback(
     async (key: keyof ConsultaPermissions, value: boolean) => {
       await patchContract({
@@ -274,6 +291,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       updateProperty,
       markAsPaid,
       togglePaid,
+      unmarkPaid,
       setPermission,
       resetPermissions,
       publishForConsulta,
@@ -290,6 +308,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       updateProperty,
       markAsPaid,
       togglePaid,
+      unmarkPaid,
       setPermission,
       resetPermissions,
       publishForConsulta,
