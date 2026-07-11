@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { PdfClipboardPreview } from './PdfClipboardPreview'
 
 interface ClipboardReceiptModalProps {
   pdfSrc: string | null
@@ -72,22 +73,19 @@ export function ClipboardReceiptModal({
           </div>
 
           <div className="clipboard-paper relative z-10 mx-auto overflow-hidden rounded-sm bg-[#fbf8f1] p-2 shadow-[0_2px_0_rgba(0,0,0,0.08),0_14px_28px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
-            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.35),transparent_12%,transparent_88%,rgba(180,150,100,0.08))]" />
+            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.25),transparent_10%,transparent_90%,rgba(180,150,100,0.06))]" />
             <h2 id="clipboard-receipt-title" className="sr-only">
               Visualização do PDF {fileName ?? 'anexado'}
             </h2>
-            <iframe
-              title={fileName ?? 'PDF do recibo'}
-              src={pdfSrc}
-              className="relative z-0 h-[min(68vh,38rem)] w-full rounded-[2px] border-0 bg-white"
-            />
+            <div className="relative z-0">
+              <PdfClipboardPreview pdfSrc={pdfSrc} fileName={fileName} />
+            </div>
           </div>
 
           <div className="pointer-events-none absolute bottom-3 left-1/2 h-1.5 w-16 -translate-x-1/2 rounded-full bg-black/15 blur-[1px]" />
         </div>
 
         <p className="mt-4 text-center text-xs font-medium tracking-wide text-amber-100/55">
-          {fileName ? `${fileName} · ` : ''}
           Toque no X ou fora da prancheta para fechar
         </p>
       </div>
