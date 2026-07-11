@@ -6,6 +6,7 @@ import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
+import { RotateScreenHint } from './RotateScreenHint'
 import { Button, Card } from './ui'
 
 interface ConsultaTabProps {
@@ -264,6 +265,7 @@ export function ConsultaTab({
                   {filter === 'all' ? 'Todas' : filter}
                 </button>
               ))}
+              <RotateScreenHint />
             </div>
           </div>
 
