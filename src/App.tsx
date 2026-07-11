@@ -152,7 +152,6 @@ export default function App() {
             <ConsultaTab
               permissions={consultaSettings.permissions}
               publishedData={consultaSettings.publishedData}
-              receiptPdfs={consultaSettings.receiptPdfs}
               isPublicMode
             />
           </main>
@@ -260,7 +259,6 @@ export default function App() {
             seller={data.seller}
             buyer={data.buyer}
             property={data.property}
-            receiptPdfs={contract.receiptPdfs}
           />
         ) : activeTab === 'admin' ? (
           <AdministrationTab
@@ -278,7 +276,6 @@ export default function App() {
           <ConsultaTab
             permissions={consultaSettings.permissions}
             publishedData={consultaSettings.publishedData}
-            receiptPdfs={consultaSettings.receiptPdfs}
           />
         )}
       </main>

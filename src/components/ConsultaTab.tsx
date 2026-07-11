@@ -1,12 +1,10 @@
-import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Printer, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
 import type { Party, Property } from '../types/receipt'
-import type { ReceiptPdfsMap } from '../types/receiptPdf'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { downloadReceiptPdf } from '../utils/pdfGenerator'
-import { printReceiptPdf } from '../utils/receiptPdfStore'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ClipboardReceiptModal } from './ClipboardReceiptModal'
 import { ExportFormatModal } from './ExportFormatModal'
@@ -16,7 +14,6 @@ import { Button, Card } from './ui'
 interface ConsultaTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
-  receiptPdfs?: ReceiptPdfsMap
   isPublicMode?: boolean
 }
 
@@ -58,7 +55,6 @@ function InfoBlock({
 export function ConsultaTab({
   permissions,
   publishedData,
-  receiptPdfs,
   isPublicMode = false,
 }: ConsultaTabProps) {
   const [search, setSearch] = useState('')
@@ -79,14 +75,6 @@ export function ConsultaTab({
       )
     })
   }, [publishedData, permissions.installmentTable, search, statusFilter])
-
-  const pdfMap = useMemo<ReceiptPdfsMap>(
-    () => ({
-      ...(publishedData?.receiptPdfs ?? {}),
-      ...(receiptPdfs ?? {}),
-    }),
-    [publishedData?.receiptPdfs, receiptPdfs],
-  )
 
   const showContractSection =
     permissions.sellerName ||
@@ -349,7 +337,6 @@ export function ConsultaTab({
                           seller={seller}
                           buyer={buyer}
                           property={property}
-                          uploadedPdf={pdfMap[String(row.number)]}
                         />
                       </td>
                     )}
@@ -390,18 +377,15 @@ function ConsultaPdfActions({
   seller,
   buyer,
   property,
-  uploadedPdf,
 }: {
   row: InstallmentStatusRow
   seller: Party
   buyer: Party
   property: Property
-  uploadedPdf?: ReceiptPdfsMap[string]
 }) {
   const [viewOpen, setViewOpen] = useState(false)
   const isPaid = row.status === 'pago'
   const canGeneratePdf = isPaid && Boolean(row.paymentDate)
-  const hasUploadedPdf = Boolean(uploadedPdf)
   const canViewReceipt = canGeneratePdf
 
   const receipt = canViewReceipt && row.paymentDate
@@ -426,14 +410,7 @@ function ConsultaPdfActions({
     downloadReceiptPdf(receipt)
   }
 
-  const handlePrintUploaded = async () => {
-    const printed = await printReceiptPdf(row.number, uploadedPdf?.storagePath)
-    if (!printed) {
-      window.alert('Não foi possível abrir o PDF para impressão.')
-    }
-  }
-
-  if (!canViewReceipt && !hasUploadedPdf) {
+  if (!canViewReceipt && !canGeneratePdf) {
     return <span className="text-xs text-zinc-600">—</span>
   }
 
@@ -449,17 +426,6 @@ function ConsultaPdfActions({
           >
             <Eye className="h-3.5 w-3.5" />
             Ver
-          </button>
-        )}
-        {hasUploadedPdf && (
-          <button
-            type="button"
-            onClick={() => void handlePrintUploaded()}
-            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-            title="Imprimir PDF anexado"
-          >
-            <Printer className="h-3.5 w-3.5" />
-            Imprimir
           </button>
         )}
         {canGeneratePdf && (

@@ -1,12 +1,10 @@
-import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Printer, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Party, Property } from '../types/receipt'
-import type { ReceiptPdfsMap } from '../types/receiptPdf'
 import type { usePaymentStatus } from '../hooks/usePaymentStatus'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { downloadReceiptPdf } from '../utils/pdfGenerator'
-import { printReceiptPdf } from '../utils/receiptPdfStore'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ClipboardReceiptModal } from './ClipboardReceiptModal'
 import { ExportFormatModal } from './ExportFormatModal'
@@ -24,7 +22,6 @@ interface PaymentStatusTabProps {
   seller: Party
   buyer: Party
   property: Property
-  receiptPdfs: ReceiptPdfsMap
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -83,7 +80,6 @@ export function PaymentStatusTab({
   seller,
   buyer,
   property,
-  receiptPdfs,
 }: PaymentStatusTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
@@ -225,7 +221,6 @@ export function PaymentStatusTab({
                   seller={seller}
                   buyer={buyer}
                   property={property}
-                  uploadedPdf={receiptPdfs[String(row.number)]}
                 />
               ))}
               {filteredRows.length === 0 && (
@@ -253,7 +248,6 @@ function InstallmentRow({
   seller,
   buyer,
   property,
-  uploadedPdf,
 }: {
   row: InstallmentStatusRow
   checked: boolean
@@ -261,12 +255,10 @@ function InstallmentRow({
   seller: Party
   buyer: Party
   property: Property
-  uploadedPdf?: ReceiptPdfsMap[string]
 }) {
   const [viewOpen, setViewOpen] = useState(false)
   const isPaid = row.status === 'pago'
   const canGeneratePdf = isPaid && Boolean(row.paymentDate)
-  const hasUploadedPdf = Boolean(uploadedPdf)
   const canViewReceipt = canGeneratePdf
 
   const receipt = canViewReceipt && row.paymentDate
@@ -289,13 +281,6 @@ function InstallmentRow({
   const handleGeneratePdf = () => {
     if (!receipt) return
     downloadReceiptPdf(receipt)
-  }
-
-  const handlePrintUploaded = async () => {
-    const printed = await printReceiptPdf(row.number, uploadedPdf?.storagePath)
-    if (!printed) {
-      window.alert('Não foi possível abrir o PDF para impressão.')
-    }
   }
 
   return (
@@ -333,7 +318,7 @@ function InstallmentRow({
         <StatusBadge status={row.status} />
       </td>
       <td className="px-4 py-3 text-center">
-        {canViewReceipt || hasUploadedPdf ? (
+        {canViewReceipt || canGeneratePdf ? (
           <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
             {canViewReceipt && (
               <button
@@ -344,17 +329,6 @@ function InstallmentRow({
               >
                 <Eye className="h-3.5 w-3.5" />
                 Ver
-              </button>
-            )}
-            {hasUploadedPdf && (
-              <button
-                type="button"
-                onClick={() => void handlePrintUploaded()}
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-                title="Imprimir PDF anexado"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                Imprimir
               </button>
             )}
             {canGeneratePdf && (

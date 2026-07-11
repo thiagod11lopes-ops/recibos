@@ -43,7 +43,6 @@ export function useConsultaSettings() {
       ...contract.consultaPermissions,
     },
     publishedData: contract.publishedConsulta,
-    receiptPdfs: contract.receiptPdfs,
     storage,
     loading,
     error,
