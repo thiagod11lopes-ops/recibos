@@ -103,7 +103,7 @@ export function CollapsibleParcelSection({
                 </p>
               )}
             </div>
-            <RotateScreenHint />
+            <RotateScreenHint visible={expanded && isCompactDevice && !isLandscape} />
           </div>
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/4 text-zinc-300 transition-transform duration-300 ${

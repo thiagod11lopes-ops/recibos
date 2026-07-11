@@ -1,10 +1,11 @@
 import { Smartphone } from 'lucide-react'
-import { useViewportMode } from '../hooks/useViewportMode'
 
-export function RotateScreenHint() {
-  const { isCompactDevice, isLandscape } = useViewportMode()
+interface RotateScreenHintProps {
+  visible?: boolean
+}
 
-  if (!isCompactDevice || isLandscape) return null
+export function RotateScreenHint({ visible = true }: RotateScreenHintProps) {
+  if (!visible) return null
 
   return (
     <span
