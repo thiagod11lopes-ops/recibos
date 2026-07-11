@@ -6,8 +6,9 @@ import type { usePaymentStatus } from '../hooks/usePaymentStatus'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { downloadReceiptPdf } from '../utils/pdfGenerator'
-import { openReceiptPdf, printReceiptPdf } from '../utils/receiptPdfStore'
-import { formatCurrency, formatDateBR, generateId } from '../utils/formatters'
+import { printReceiptPdf } from '../utils/receiptPdfStore'
+import { formatCurrency, formatDateBR } from '../utils/formatters'
+import { ClipboardReceiptModal } from './ClipboardReceiptModal'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
 import { Button } from './ui'
@@ -262,34 +263,32 @@ function InstallmentRow({
   property: Property
   uploadedPdf?: ReceiptPdfsMap[string]
 }) {
+  const [viewOpen, setViewOpen] = useState(false)
   const isPaid = row.status === 'pago'
   const canGeneratePdf = isPaid && Boolean(row.paymentDate)
   const hasUploadedPdf = Boolean(uploadedPdf)
+  const canViewReceipt = canGeneratePdf
+
+  const receipt = canViewReceipt && row.paymentDate
+    ? {
+        seller,
+        buyer,
+        property,
+        installment: {
+          id: `status-${row.number}`,
+          number: row.number,
+          value: row.value,
+          paymentDate: row.paymentDate,
+          receiptDate: row.paymentDate,
+          city: 'Rio de Janeiro',
+          generated: true,
+        },
+      }
+    : null
 
   const handleGeneratePdf = () => {
-    if (!canGeneratePdf || !row.paymentDate) return
-
-    downloadReceiptPdf({
-      seller,
-      buyer,
-      property,
-      installment: {
-        id: generateId(),
-        number: row.number,
-        value: row.value,
-        paymentDate: row.paymentDate,
-        receiptDate: row.paymentDate,
-        city: 'Rio de Janeiro',
-        generated: true,
-      },
-    })
-  }
-
-  const handleViewUploaded = async () => {
-    const opened = await openReceiptPdf(row.number, uploadedPdf?.storagePath)
-    if (!opened) {
-      window.alert('PDF não encontrado neste dispositivo. Anexe novamente em Novo Recibo.')
-    }
+    if (!receipt) return
+    downloadReceiptPdf(receipt)
   }
 
   const handlePrintUploaded = async () => {
@@ -334,36 +333,36 @@ function InstallmentRow({
         <StatusBadge status={row.status} />
       </td>
       <td className="px-4 py-3 text-center">
-        {hasUploadedPdf || canGeneratePdf ? (
+        {canViewReceipt || hasUploadedPdf ? (
           <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+            {canViewReceipt && (
+              <button
+                type="button"
+                onClick={() => setViewOpen(true)}
+                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                title="Visualizar recibo na prancheta"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Ver
+              </button>
+            )}
             {hasUploadedPdf && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => void handleViewUploaded()}
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-                  title={`Ver PDF anexado: ${uploadedPdf?.fileName}`}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  Ver
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handlePrintUploaded()}
-                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-                  title="Imprimir PDF anexado"
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  Imprimir
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => void handlePrintUploaded()}
+                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                title="Imprimir PDF anexado"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </button>
             )}
             {canGeneratePdf && (
               <button
                 type="button"
                 onClick={handleGeneratePdf}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
-                title={`Gerar PDF do recibo da parcela ${row.number}`}
+                title={`Baixar PDF do recibo da parcela ${row.number}`}
               >
                 <FileDown className="h-3.5 w-3.5" />
                 PDF
@@ -374,6 +373,10 @@ function InstallmentRow({
           <span className="text-xs text-zinc-600">—</span>
         )}
       </td>
+      <ClipboardReceiptModal
+        receipt={viewOpen ? receipt : null}
+        onClose={() => setViewOpen(false)}
+      />
     </tr>
   )
 }
