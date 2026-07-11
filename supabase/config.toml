@@ -1,0 +1,13 @@
+# Configuração do projeto Supabase (usada pela integração GitHub / CLI)
+# https://supabase.com/docs/guides/cli/config
+
+project_id = "recibos"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[db.migrations]
+enabled = true

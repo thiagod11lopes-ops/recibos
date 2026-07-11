@@ -88,7 +88,7 @@ O sistema persiste contrato, status de pagamento, permissões e dados publicados
 ### Configuração local
 
 1. Crie um projeto em [Supabase](https://supabase.com/dashboard)
-2. No **SQL Editor**, execute o arquivo [`supabase/schema.sql`](supabase/schema.sql)
+2. No **SQL Editor**, execute a migration em [`supabase/migrations/`](supabase/migrations/) **ou** conecte o GitHub (abaixo) para aplicar automaticamente
 3. Em **Project Settings → API**, copie a URL e a `anon` key
 4. Copie `.env.example` para `.env` e preencha:
 
@@ -99,6 +99,21 @@ VITE_SUPABASE_CONTRACT_ID=default
 ```
 
 5. Reinicie `npm run dev`
+
+### Integração GitHub (tela de Integrações)
+
+No projeto Supabase → **Configurações → Integrações → GitHub**:
+
+| Campo | Valor correto |
+|-------|----------------|
+| Repositório | `thiagod11lopes-ops/recibos` |
+| Diretório de trabalho | `.` *(não* `supabase/`*)* |
+| Implantar em produção | ligado |
+| Branch de produção | `main` |
+
+O diretório de trabalho deve ser o caminho **até a pasta que contém** `supabase/`. Como `supabase/` está na raiz do repositório, use `.`.
+
+A integração aplica automaticamente os arquivos em `supabase/migrations/` a cada push/merge em `main`.
 
 ### Tabela `contracts`
 
@@ -136,7 +151,8 @@ src/
 ├── types/          # Tipos TypeScript
 └── utils/          # PDF, HTML, formatadores e exportação
 supabase/
-└── schema.sql      # DDL + RLS + Realtime
+├── config.toml
+└── migrations/     # DDL + RLS + Realtime
 ```
 
 ## Publicar no GitHub
