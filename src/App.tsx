@@ -152,6 +152,7 @@ export default function App() {
             <ConsultaTab
               permissions={consultaSettings.permissions}
               publishedData={consultaSettings.publishedData}
+              receiptPdfs={consultaSettings.receiptPdfs}
               isPublicMode
             />
           </main>
@@ -277,6 +278,7 @@ export default function App() {
           <ConsultaTab
             permissions={consultaSettings.permissions}
             publishedData={consultaSettings.publishedData}
+            receiptPdfs={consultaSettings.receiptPdfs}
           />
         )}
       </main>

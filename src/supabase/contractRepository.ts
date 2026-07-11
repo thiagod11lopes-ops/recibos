@@ -78,7 +78,10 @@ function rowToDocument(row: ContractRow): ContractDocument {
     paidNumbers: row.paid_numbers,
     paymentDates: row.payment_dates ?? {},
     receiptPdfs: row.receipt_pdfs ?? {},
-    consultaPermissions: row.consulta_permissions,
+    consultaPermissions: {
+      ...DEFAULT_CONSULTA_PERMISSIONS,
+      ...(row.consulta_permissions ?? {}),
+    },
     publishedConsulta: row.published_consulta,
     updatedAt: row.updated_at,
   })

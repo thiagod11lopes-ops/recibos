@@ -1,9 +1,13 @@
-import { CheckCircle2, Clock, Eye, FileSpreadsheet, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Printer, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
-import type { PaymentStatus } from '../utils/installmentStatus'
+import type { Party, Property } from '../types/receipt'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
+import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
-import { formatCurrency, formatDateBR } from '../utils/formatters'
+import { downloadReceiptPdf } from '../utils/pdfGenerator'
+import { openReceiptPdf, printReceiptPdf } from '../utils/receiptPdfStore'
+import { formatCurrency, formatDateBR, generateId } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
 import { Button, Card } from './ui'
@@ -11,6 +15,7 @@ import { Button, Card } from './ui'
 interface ConsultaTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
+  receiptPdfs?: ReceiptPdfsMap
   isPublicMode?: boolean
 }
 
@@ -52,6 +57,7 @@ function InfoBlock({
 export function ConsultaTab({
   permissions,
   publishedData,
+  receiptPdfs,
   isPublicMode = false,
 }: ConsultaTabProps) {
   const [search, setSearch] = useState('')
@@ -73,6 +79,14 @@ export function ConsultaTab({
     })
   }, [publishedData, permissions.installmentTable, search, statusFilter])
 
+  const pdfMap = useMemo<ReceiptPdfsMap>(
+    () => ({
+      ...(publishedData?.receiptPdfs ?? {}),
+      ...(receiptPdfs ?? {}),
+    }),
+    [publishedData?.receiptPdfs, receiptPdfs],
+  )
+
   const showContractSection =
     permissions.sellerName ||
     permissions.sellerCpf ||
@@ -87,7 +101,8 @@ export function ConsultaTab({
     (permissions.showDueDate ? 1 : 0) +
     (permissions.showPaymentDate ? 1 : 0) +
     (permissions.showValue ? 1 : 0) +
-    (permissions.showStatus ? 1 : 0)
+    (permissions.showStatus ? 1 : 0) +
+    (permissions.showPdfActions ? 1 : 0)
 
   if (!publishedData) {
     return (
@@ -287,6 +302,11 @@ export function ConsultaTab({
                   {permissions.showStatus && (
                     <th className="px-4 py-3 text-right font-medium">Status</th>
                   )}
+                  {permissions.showPdfActions && (
+                    <th className="px-4 py-3 text-center font-medium">
+                      Gerar e visualizar PDF
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -321,6 +341,17 @@ export function ConsultaTab({
                         <StatusBadge status={row.status} />
                       </td>
                     )}
+                    {permissions.showPdfActions && (
+                      <td className="px-4 py-3 text-center">
+                        <ConsultaPdfActions
+                          row={row}
+                          seller={seller}
+                          buyer={buyer}
+                          property={property}
+                          uploadedPdf={pdfMap[String(row.number)]}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {filteredRows.length === 0 && (
@@ -349,6 +380,101 @@ export function ConsultaTab({
             </p>
           </Card>
         )}
+    </div>
+  )
+}
+
+function ConsultaPdfActions({
+  row,
+  seller,
+  buyer,
+  property,
+  uploadedPdf,
+}: {
+  row: InstallmentStatusRow
+  seller: Party
+  buyer: Party
+  property: Property
+  uploadedPdf?: ReceiptPdfsMap[string]
+}) {
+  const isPaid = row.status === 'pago'
+  const canGeneratePdf = isPaid && Boolean(row.paymentDate)
+  const hasUploadedPdf = Boolean(uploadedPdf)
+
+  const handleGeneratePdf = () => {
+    if (!canGeneratePdf || !row.paymentDate) return
+
+    downloadReceiptPdf({
+      seller,
+      buyer,
+      property,
+      installment: {
+        id: generateId(),
+        number: row.number,
+        value: row.value,
+        paymentDate: row.paymentDate,
+        receiptDate: row.paymentDate,
+        city: 'Rio de Janeiro',
+        generated: true,
+      },
+    })
+  }
+
+  const handleViewUploaded = async () => {
+    const opened = await openReceiptPdf(row.number, uploadedPdf?.storagePath)
+    if (!opened) {
+      window.alert(
+        'PDF não encontrado. Peça ao administrador para anexar o recibo novamente.',
+      )
+    }
+  }
+
+  const handlePrintUploaded = async () => {
+    const printed = await printReceiptPdf(row.number, uploadedPdf?.storagePath)
+    if (!printed) {
+      window.alert('Não foi possível abrir o PDF para impressão.')
+    }
+  }
+
+  if (!hasUploadedPdf && !canGeneratePdf) {
+    return <span className="text-xs text-zinc-600">—</span>
+  }
+
+  return (
+    <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+      {hasUploadedPdf && (
+        <>
+          <button
+            type="button"
+            onClick={() => void handleViewUploaded()}
+            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+            title={`Visualizar PDF: ${uploadedPdf?.fileName}`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Ver
+          </button>
+          <button
+            type="button"
+            onClick={() => void handlePrintUploaded()}
+            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+            title="Imprimir PDF anexado"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Imprimir
+          </button>
+        </>
+      )}
+      {canGeneratePdf && (
+        <button
+          type="button"
+          onClick={handleGeneratePdf}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
+          title={`Gerar PDF do recibo da parcela ${row.number}`}
+        >
+          <FileDown className="h-3.5 w-3.5" />
+          PDF
+        </button>
+      )}
     </div>
   )
 }

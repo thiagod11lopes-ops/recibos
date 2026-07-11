@@ -1,4 +1,5 @@
 import type { Party, Property } from './receipt'
+import type { ReceiptPdfsMap } from './receiptPdf'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 
 export interface ConsultaPermissions {
@@ -17,6 +18,7 @@ export interface ConsultaPermissions {
   showPaymentDate: boolean
   showValue: boolean
   showStatus: boolean
+  showPdfActions: boolean
 }
 
 export interface ConsultaPublishedSummary {
@@ -34,6 +36,7 @@ export interface ConsultaPublishedData {
   rows: InstallmentStatusRow[]
   summary: ConsultaPublishedSummary
   totalCount: number
+  receiptPdfs?: ReceiptPdfsMap
 }
 
 export const DEFAULT_CONSULTA_PERMISSIONS: ConsultaPermissions = {
@@ -52,6 +55,7 @@ export const DEFAULT_CONSULTA_PERMISSIONS: ConsultaPermissions = {
   showPaymentDate: true,
   showValue: true,
   showStatus: true,
+  showPdfActions: true,
 }
 
 export const PERMISSION_GROUPS: {
@@ -90,6 +94,7 @@ export const PERMISSION_GROUPS: {
       { key: 'showPaymentDate', label: 'Coluna data de pagamento' },
       { key: 'showValue', label: 'Coluna valor' },
       { key: 'showStatus', label: 'Coluna status' },
+      { key: 'showPdfActions', label: 'Coluna Gerar e visualizar PDF' },
     ],
   },
 ]

@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useContractDatabase } from '../context/ContractDatabaseContext'
+import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
 import type { Party, Property } from '../types/receipt'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 import type { getPaymentSummary } from '../utils/installmentStatus'
@@ -37,8 +38,12 @@ export function useConsultaSettings() {
   )
 
   return {
-    permissions: contract.consultaPermissions,
+    permissions: {
+      ...DEFAULT_CONSULTA_PERMISSIONS,
+      ...contract.consultaPermissions,
+    },
     publishedData: contract.publishedConsulta,
+    receiptPdfs: contract.receiptPdfs,
     storage,
     loading,
     error,

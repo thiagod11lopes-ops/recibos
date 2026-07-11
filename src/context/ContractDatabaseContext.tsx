@@ -252,12 +252,13 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
           pendingTotalFormatted: input.summary.pendingTotalFormatted,
         },
         totalCount: input.totalCount,
+        receiptPdfs: contract.receiptPdfs,
       }
 
       await patchContract({ publishedConsulta: snapshot })
       return snapshot
     },
-    [patchContract],
+    [contract.receiptPdfs, patchContract],
   )
 
   const saveReceiptPdf = useCallback(
