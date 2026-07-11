@@ -1,14 +1,14 @@
-import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Search } from 'lucide-react'
+import { CheckCircle2, Clock, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Party, Property } from '../types/receipt'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
 import type { usePaymentStatus } from '../hooks/usePaymentStatus'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
-import { downloadReceiptPdf } from '../utils/pdfGenerator'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
-import { ClipboardReceiptModal } from './ClipboardReceiptModal'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
+import { UploadedPdfActions } from './UploadedPdfActions'
 import { Button } from './ui'
 
 type PaymentStatusState = ReturnType<typeof usePaymentStatus>
@@ -22,6 +22,7 @@ interface PaymentStatusTabProps {
   seller: Party
   buyer: Party
   property: Property
+  receiptPdfs: ReceiptPdfsMap
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -80,6 +81,7 @@ export function PaymentStatusTab({
   seller,
   buyer,
   property,
+  receiptPdfs,
 }: PaymentStatusTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
@@ -218,9 +220,7 @@ export function PaymentStatusTab({
                   row={row}
                   checked={isPaid(row.number)}
                   onToggle={() => onTogglePaid(row.number)}
-                  seller={seller}
-                  buyer={buyer}
-                  property={property}
+                  uploadedPdf={receiptPdfs[String(row.number)]}
                 />
               ))}
               {filteredRows.length === 0 && (
@@ -245,43 +245,14 @@ function InstallmentRow({
   row,
   checked,
   onToggle,
-  seller,
-  buyer,
-  property,
+  uploadedPdf,
 }: {
   row: InstallmentStatusRow
   checked: boolean
   onToggle: () => void
-  seller: Party
-  buyer: Party
-  property: Property
+  uploadedPdf?: ReceiptPdfsMap[string]
 }) {
-  const [viewOpen, setViewOpen] = useState(false)
   const isPaid = row.status === 'pago'
-  const canGeneratePdf = isPaid && Boolean(row.paymentDate)
-  const canViewReceipt = canGeneratePdf
-
-  const receipt = canViewReceipt && row.paymentDate
-    ? {
-        seller,
-        buyer,
-        property,
-        installment: {
-          id: `status-${row.number}`,
-          number: row.number,
-          value: row.value,
-          paymentDate: row.paymentDate,
-          receiptDate: row.paymentDate,
-          city: 'Rio de Janeiro',
-          generated: true,
-        },
-      }
-    : null
-
-  const handleGeneratePdf = () => {
-    if (!receipt) return
-    downloadReceiptPdf(receipt)
-  }
 
   return (
     <tr
@@ -318,39 +289,11 @@ function InstallmentRow({
         <StatusBadge status={row.status} />
       </td>
       <td className="px-4 py-3 text-center">
-        {canViewReceipt || canGeneratePdf ? (
-          <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
-            {canViewReceipt && (
-              <button
-                type="button"
-                onClick={() => setViewOpen(true)}
-                className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-                title="Visualizar recibo na prancheta"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Ver
-              </button>
-            )}
-            {canGeneratePdf && (
-              <button
-                type="button"
-                onClick={handleGeneratePdf}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
-                title={`Baixar PDF do recibo da parcela ${row.number}`}
-              >
-                <FileDown className="h-3.5 w-3.5" />
-                PDF
-              </button>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-zinc-600">—</span>
-        )}
+        <UploadedPdfActions
+          installmentNumber={row.number}
+          uploadedPdf={uploadedPdf}
+        />
       </td>
-      <ClipboardReceiptModal
-        receipt={viewOpen ? receipt : null}
-        onClose={() => setViewOpen(false)}
-      />
     </tr>
   )
 }

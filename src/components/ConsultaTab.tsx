@@ -1,19 +1,19 @@
-import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
-import type { Party, Property } from '../types/receipt'
-import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
+import type { PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
-import { downloadReceiptPdf } from '../utils/pdfGenerator'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
-import { ClipboardReceiptModal } from './ClipboardReceiptModal'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
+import { UploadedPdfActions } from './UploadedPdfActions'
 import { Button, Card } from './ui'
 
 interface ConsultaTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
+  receiptPdfs?: ReceiptPdfsMap
   isPublicMode?: boolean
 }
 
@@ -55,6 +55,7 @@ function InfoBlock({
 export function ConsultaTab({
   permissions,
   publishedData,
+  receiptPdfs,
   isPublicMode = false,
 }: ConsultaTabProps) {
   const [search, setSearch] = useState('')
@@ -75,6 +76,14 @@ export function ConsultaTab({
       )
     })
   }, [publishedData, permissions.installmentTable, search, statusFilter])
+
+  const pdfMap = useMemo<ReceiptPdfsMap>(
+    () => ({
+      ...(publishedData?.receiptPdfs ?? {}),
+      ...(receiptPdfs ?? {}),
+    }),
+    [publishedData?.receiptPdfs, receiptPdfs],
+  )
 
   const showContractSection =
     permissions.sellerName ||
@@ -332,11 +341,9 @@ export function ConsultaTab({
                     )}
                     {permissions.showPdfActions && (
                       <td className="px-4 py-3 text-center">
-                        <ConsultaPdfActions
-                          row={row}
-                          seller={seller}
-                          buyer={buyer}
-                          property={property}
+                        <UploadedPdfActions
+                          installmentNumber={row.number}
+                          uploadedPdf={pdfMap[String(row.number)]}
                         />
                       </td>
                     )}
@@ -369,81 +376,5 @@ export function ConsultaTab({
           </Card>
         )}
     </div>
-  )
-}
-
-function ConsultaPdfActions({
-  row,
-  seller,
-  buyer,
-  property,
-}: {
-  row: InstallmentStatusRow
-  seller: Party
-  buyer: Party
-  property: Property
-}) {
-  const [viewOpen, setViewOpen] = useState(false)
-  const isPaid = row.status === 'pago'
-  const canGeneratePdf = isPaid && Boolean(row.paymentDate)
-  const canViewReceipt = canGeneratePdf
-
-  const receipt = canViewReceipt && row.paymentDate
-    ? {
-        seller,
-        buyer,
-        property,
-        installment: {
-          id: `consulta-${row.number}`,
-          number: row.number,
-          value: row.value,
-          paymentDate: row.paymentDate,
-          receiptDate: row.paymentDate,
-          city: 'Rio de Janeiro',
-          generated: true,
-        },
-      }
-    : null
-
-  const handleGeneratePdf = () => {
-    if (!receipt) return
-    downloadReceiptPdf(receipt)
-  }
-
-  if (!canViewReceipt && !canGeneratePdf) {
-    return <span className="text-xs text-zinc-600">—</span>
-  }
-
-  return (
-    <>
-      <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
-        {canViewReceipt && (
-          <button
-            type="button"
-            onClick={() => setViewOpen(true)}
-            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
-            title="Visualizar recibo na prancheta"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            Ver
-          </button>
-        )}
-        {canGeneratePdf && (
-          <button
-            type="button"
-            onClick={handleGeneratePdf}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
-            title={`Baixar PDF do recibo da parcela ${row.number}`}
-          >
-            <FileDown className="h-3.5 w-3.5" />
-            PDF
-          </button>
-        )}
-      </div>
-      <ClipboardReceiptModal
-        receipt={viewOpen ? receipt : null}
-        onClose={() => setViewOpen(false)}
-      />
-    </>
   )
 }

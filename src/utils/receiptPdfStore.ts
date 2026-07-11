@@ -110,6 +110,34 @@ export async function openReceiptPdf(
   return true
 }
 
+export async function createReceiptPdfObjectUrl(
+  installmentNumber: number,
+  storagePath?: string,
+): Promise<string | null> {
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
+  if (!blob) return null
+  return URL.createObjectURL(blob)
+}
+
+export async function downloadUploadedReceiptPdf(
+  installmentNumber: number,
+  fileName: string,
+  storagePath?: string,
+): Promise<boolean> {
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
+  if (!blob) return false
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  return true
+}
+
 export async function printReceiptPdf(
   installmentNumber: number,
   storagePath?: string,

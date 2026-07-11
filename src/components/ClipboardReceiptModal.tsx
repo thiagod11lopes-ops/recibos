@@ -1,20 +1,20 @@
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import type { ActiveReceipt } from '../types/receipt'
-import { ReceiptDocument } from './ReceiptDocument'
 
 interface ClipboardReceiptModalProps {
-  receipt: ActiveReceipt | null
+  pdfSrc: string | null
+  fileName?: string
   onClose: () => void
 }
 
 export function ClipboardReceiptModal({
-  receipt,
+  pdfSrc,
+  fileName,
   onClose,
 }: ClipboardReceiptModalProps) {
   useEffect(() => {
-    if (!receipt) return
+    if (!pdfSrc) return
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -28,9 +28,9 @@ export function ClipboardReceiptModal({
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [receipt, onClose])
+  }, [pdfSrc, onClose])
 
-  if (!receipt) return null
+  if (!pdfSrc) return null
 
   return createPortal(
     <div
@@ -56,7 +56,7 @@ export function ClipboardReceiptModal({
         <X className="h-5 w-5" strokeWidth={2.5} />
       </button>
 
-      <div className="clipboard-stage relative z-[91] w-full max-w-[28rem] animate-clipboard-enter">
+      <div className="clipboard-stage relative z-[91] w-full max-w-[34rem] animate-clipboard-enter">
         <div className="clipboard-board relative rounded-[1.35rem] px-3 pb-4 pt-10 shadow-[0_28px_80px_-12px_rgba(0,0,0,0.65),0_8px_24px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] sm:px-4 sm:pb-5 sm:pt-12">
           <div className="clipboard-grain pointer-events-none absolute inset-0 rounded-[1.35rem] opacity-40" />
 
@@ -71,15 +71,15 @@ export function ClipboardReceiptModal({
             </div>
           </div>
 
-          <div className="clipboard-paper relative z-10 mx-auto max-h-[min(72vh,40rem)] overflow-y-auto rounded-sm bg-[#fbf8f1] px-1 py-1 shadow-[0_2px_0_rgba(0,0,0,0.08),0_14px_28px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.35),transparent_18%,transparent_82%,rgba(180,150,100,0.08))]" />
+          <div className="clipboard-paper relative z-10 mx-auto overflow-hidden rounded-sm bg-[#fbf8f1] p-2 shadow-[0_2px_0_rgba(0,0,0,0.08),0_14px_28px_rgba(0,0,0,0.18)] ring-1 ring-black/5">
+            <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.35),transparent_12%,transparent_88%,rgba(180,150,100,0.08))]" />
             <h2 id="clipboard-receipt-title" className="sr-only">
-              Visualização do recibo
+              Visualização do PDF {fileName ?? 'anexado'}
             </h2>
-            <ReceiptDocument
-              receipt={receipt}
-              id="clipboard-receipt"
-              className="!mx-0 !max-w-none !rounded-none !border-0 !bg-transparent !p-5 !shadow-none sm:!p-7"
+            <iframe
+              title={fileName ?? 'PDF do recibo'}
+              src={pdfSrc}
+              className="relative z-0 h-[min(68vh,38rem)] w-full rounded-[2px] border-0 bg-white"
             />
           </div>
 
@@ -87,6 +87,7 @@ export function ClipboardReceiptModal({
         </div>
 
         <p className="mt-4 text-center text-xs font-medium tracking-wide text-amber-100/55">
+          {fileName ? `${fileName} · ` : ''}
           Toque no X ou fora da prancheta para fechar
         </p>
       </div>
