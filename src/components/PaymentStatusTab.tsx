@@ -1,10 +1,11 @@
-import { CheckCircle2, Clock, FileSpreadsheet, Search } from 'lucide-react'
+import { CheckCircle2, Clock, FileDown, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Party, Property } from '../types/receipt'
 import type { usePaymentStatus } from '../hooks/usePaymentStatus'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
-import { formatCurrency, formatDateBR } from '../utils/formatters'
+import { downloadReceiptPdf } from '../utils/pdfGenerator'
+import { formatCurrency, formatDateBR, generateId } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
 import { Button } from './ui'
@@ -206,6 +207,7 @@ export function PaymentStatusTab({
                 <th className="px-4 py-3 font-medium">Valor</th>
                 <th className="px-4 py-3 text-center font-medium">Pago</th>
                 <th className="px-4 py-3 font-medium text-right">Status</th>
+                <th className="px-4 py-3 text-center font-medium">Gerar PDF</th>
               </tr>
             </thead>
             <tbody>
@@ -215,12 +217,15 @@ export function PaymentStatusTab({
                   row={row}
                   checked={isPaid(row.number)}
                   onToggle={() => onTogglePaid(row.number)}
+                  seller={seller}
+                  buyer={buyer}
+                  property={property}
                 />
               ))}
               {filteredRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-zinc-500"
                   >
                     Nenhuma parcela encontrada para esta busca.
@@ -239,12 +244,38 @@ function InstallmentRow({
   row,
   checked,
   onToggle,
+  seller,
+  buyer,
+  property,
 }: {
   row: InstallmentStatusRow
   checked: boolean
   onToggle: () => void
+  seller: Party
+  buyer: Party
+  property: Property
 }) {
   const isPaid = row.status === 'pago'
+  const canGeneratePdf = isPaid && Boolean(row.paymentDate)
+
+  const handleGeneratePdf = () => {
+    if (!canGeneratePdf || !row.paymentDate) return
+
+    downloadReceiptPdf({
+      seller,
+      buyer,
+      property,
+      installment: {
+        id: generateId(),
+        number: row.number,
+        value: row.value,
+        paymentDate: row.paymentDate,
+        receiptDate: row.paymentDate,
+        city: 'Rio de Janeiro',
+        generated: true,
+      },
+    })
+  }
 
   return (
     <tr
@@ -279,6 +310,21 @@ function InstallmentRow({
       </td>
       <td className="px-4 py-3 text-right">
         <StatusBadge status={row.status} />
+      </td>
+      <td className="px-4 py-3 text-center">
+        {canGeneratePdf ? (
+          <button
+            type="button"
+            onClick={handleGeneratePdf}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
+            title={`Gerar PDF do recibo da parcela ${row.number}`}
+          >
+            <FileDown className="h-3.5 w-3.5" />
+            PDF
+          </button>
+        ) : (
+          <span className="text-xs text-zinc-600">—</span>
+        )}
       </td>
     </tr>
   )
