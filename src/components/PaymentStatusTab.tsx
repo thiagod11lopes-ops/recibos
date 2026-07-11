@@ -6,7 +6,8 @@ import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentSt
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
-import { Button, Card } from './ui'
+import { CollapsibleParcelSection } from './CollapsibleParcelSection'
+import { Button } from './ui'
 
 type PaymentStatusState = ReturnType<typeof usePaymentStatus>
 
@@ -193,7 +194,7 @@ export function PaymentStatusTab({
         }
       />
 
-      <Card title="Parcelas do contrato">
+      <CollapsibleParcelSection>
         <div className="overflow-x-auto rounded-xl border border-white/6">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
@@ -229,7 +230,7 @@ export function PaymentStatusTab({
             </tbody>
           </table>
         </div>
-      </Card>
+      </CollapsibleParcelSection>
     </div>
   )
 }

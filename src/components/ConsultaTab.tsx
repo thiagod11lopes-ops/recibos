@@ -5,6 +5,7 @@ import type { PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
+import { CollapsibleParcelSection } from './CollapsibleParcelSection'
 import { Button, Card } from './ui'
 
 interface ConsultaTabProps {
@@ -236,7 +237,7 @@ export function ConsultaTab({
       )}
 
       {permissions.installmentTable && (
-        <Card title="Parcelas do contrato">
+        <CollapsibleParcelSection>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
@@ -335,7 +336,7 @@ export function ConsultaTab({
               </tbody>
             </table>
           </div>
-        </Card>
+        </CollapsibleParcelSection>
       )}
 
       {!showContractSection &&
