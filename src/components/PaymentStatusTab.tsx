@@ -7,7 +7,6 @@ import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
-import { RotateScreenHint } from './RotateScreenHint'
 import { Button } from './ui'
 
 type PaymentStatusState = ReturnType<typeof usePaymentStatus>
@@ -173,7 +172,6 @@ export function PaymentStatusTab({
               {filter === 'all' ? 'Todas' : filter}
             </button>
           ))}
-          <RotateScreenHint />
           <Button
             variant="primary"
             size="sm"

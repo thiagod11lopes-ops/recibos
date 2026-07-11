@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useViewportMode } from '../hooks/useViewportMode'
 import { RotateToLandscapeModal } from './RotateToLandscapeModal'
+import { RotateScreenHint } from './RotateScreenHint'
 
 interface CollapsibleParcelSectionProps {
   title?: string
@@ -83,23 +84,26 @@ export function CollapsibleParcelSection({
               : 'px-6 py-4'
           }`}
         >
-          <div>
-            <h2 className="text-sm font-semibold tracking-wide text-zinc-200">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
-            )}
-            {!subtitle && !expanded && (
-              <p className="mt-1 text-xs text-zinc-500">
-                Toque para expandir a tabela
-              </p>
-            )}
-            {immersive && (
-              <p className="mt-1 text-xs text-indigo-300/80">
-                Modo horizontal — toque na seta para fechar
-              </p>
-            )}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold tracking-wide text-zinc-200">
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
+              )}
+              {!subtitle && !expanded && (
+                <p className="mt-1 text-xs text-zinc-500">
+                  Toque para expandir a tabela
+                </p>
+              )}
+              {immersive && (
+                <p className="mt-1 text-xs text-indigo-300/80">
+                  Modo horizontal — toque na seta para fechar
+                </p>
+              )}
+            </div>
+            <RotateScreenHint />
           </div>
           <span
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-white/4 text-zinc-300 transition-transform duration-300 ${
