@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
 import type { Party, Property } from '../types/receipt'
+import type { ReceiptPdfMeta } from '../types/receiptPdf'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 import type { getPaymentSummary } from '../utils/installmentStatus'
 import {
@@ -21,6 +22,7 @@ import {
 import { isSupabaseConfigured } from '../supabase/config'
 import type { ContractDocument, ContractPatch } from '../supabase/types'
 import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
+import { saveReceiptPdfFile } from '../utils/receiptPdfStore'
 
 interface PublishInput {
   seller: Party
@@ -48,6 +50,10 @@ interface ContractDatabaseContextValue {
   setPermission: (key: keyof ConsultaPermissions, value: boolean) => Promise<void>
   resetPermissions: () => Promise<void>
   publishForConsulta: (input: PublishInput) => Promise<ConsultaPublishedData>
+  saveReceiptPdf: (
+    installmentNumber: number,
+    file: File,
+  ) => Promise<ReceiptPdfMeta>
 }
 
 const ContractDatabaseContext = createContext<ContractDatabaseContextValue | null>(
@@ -237,6 +243,25 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
     [patchContract],
   )
 
+  const saveReceiptPdf = useCallback(
+    async (installmentNumber: number, file: File) => {
+      const saved = await saveReceiptPdfFile(installmentNumber, file)
+      const meta: ReceiptPdfMeta = {
+        fileName: saved.fileName,
+        uploadedAt: saved.uploadedAt,
+        storagePath: saved.storagePath,
+      }
+      await patchContract({
+        receiptPdfs: {
+          ...contract.receiptPdfs,
+          [String(installmentNumber)]: meta,
+        },
+      })
+      return meta
+    },
+    [contract.receiptPdfs, patchContract],
+  )
+
   const value = useMemo<ContractDatabaseContextValue>(
     () => ({
       loading,
@@ -252,6 +277,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       setPermission,
       resetPermissions,
       publishForConsulta,
+      saveReceiptPdf,
     }),
     [
       loading,
@@ -267,6 +293,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       setPermission,
       resetPermissions,
       publishForConsulta,
+      saveReceiptPdf,
     ],
   )
 

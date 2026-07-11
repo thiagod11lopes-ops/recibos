@@ -40,6 +40,7 @@ export function createDefaultContractDocument(): ContractDocument {
     property,
     paidNumbers: [...INITIAL_PAID_NUMBERS],
     paymentDates: mergeHistoricalPaymentDates(),
+    receiptPdfs: {},
     consultaPermissions: loadLegacyPermissions(),
     publishedConsulta: loadLegacyPublished(),
     updatedAt: null,
@@ -58,6 +59,7 @@ function normalizeContractDocument(
       ? data.paidNumbers
       : defaults.paidNumbers,
     paymentDates: mergeHistoricalPaymentDates(data.paymentDates ?? {}),
+    receiptPdfs: data.receiptPdfs ?? defaults.receiptPdfs,
     consultaPermissions: {
       ...defaults.consultaPermissions,
       ...data.consultaPermissions,
@@ -75,6 +77,7 @@ function rowToDocument(row: ContractRow): ContractDocument {
     property: row.property,
     paidNumbers: row.paid_numbers,
     paymentDates: row.payment_dates ?? {},
+    receiptPdfs: row.receipt_pdfs ?? {},
     consultaPermissions: row.consulta_permissions,
     publishedConsulta: row.published_consulta,
     updatedAt: row.updated_at,
@@ -92,6 +95,7 @@ function documentToRow(
     property: document.property,
     paid_numbers: document.paidNumbers,
     payment_dates: document.paymentDates,
+    receipt_pdfs: document.receiptPdfs,
     consulta_permissions: document.consultaPermissions,
     published_consulta: document.publishedConsulta,
     updated_at: new Date().toISOString(),
@@ -107,6 +111,7 @@ function patchToRow(patch: ContractPatch): Record<string, unknown> {
   if (patch.property !== undefined) row.property = patch.property
   if (patch.paidNumbers !== undefined) row.paid_numbers = patch.paidNumbers
   if (patch.paymentDates !== undefined) row.payment_dates = patch.paymentDates
+  if (patch.receiptPdfs !== undefined) row.receipt_pdfs = patch.receiptPdfs
   if (patch.consultaPermissions !== undefined) {
     row.consulta_permissions = patch.consultaPermissions
   }

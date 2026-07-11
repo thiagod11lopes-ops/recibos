@@ -1,4 +1,5 @@
-import { FileText, Plus, Trash2, Wand2 } from 'lucide-react'
+import { FilePlus, FileText, Plus, Trash2, Wand2 } from 'lucide-react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import type { Installment } from '../types/receipt'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
@@ -19,6 +20,7 @@ interface InstallmentsTableProps {
   ) => void
   onGenerateBatch: (count: number) => void
   onGenerateReceipt: (id: string) => void
+  onAddPdf: (installmentNumber: number, file: File) => Promise<void>
 }
 
 export function InstallmentsTable({
@@ -32,8 +34,47 @@ export function InstallmentsTable({
   onUpdate,
   onGenerateBatch,
   onGenerateReceipt,
+  onAddPdf,
 }: InstallmentsTableProps) {
   const canAdd = nextPending !== null
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const selectedInstallment =
+    installments.find((item) => item.id === selectedId) ?? null
+
+  const handleAddPdfClick = () => {
+    if (!selectedInstallment) {
+      window.alert(
+        'Selecione uma parcela na tabela antes de adicionar o PDF.',
+      )
+      return
+    }
+    fileInputRef.current?.click()
+  }
+
+  const handlePdfSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !selectedInstallment) return
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      window.alert('Selecione um arquivo PDF válido.')
+      return
+    }
+
+    setUploading(true)
+    try {
+      await onAddPdf(selectedInstallment.number, file)
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível adicionar o PDF.',
+      )
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <Card
@@ -68,6 +109,27 @@ export function InstallmentsTable({
             <Plus className="h-3.5 w-3.5" />
             Adicionar
           </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleAddPdfClick}
+            disabled={uploading || !selectedInstallment}
+            title={
+              selectedInstallment
+                ? `Anexar PDF à parcela ${selectedInstallment.number}`
+                : 'Selecione uma parcela para anexar o PDF'
+            }
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+            {uploading ? 'Enviando...' : 'Add PDF'}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            onChange={handlePdfSelected}
+          />
         </div>
       }
     >

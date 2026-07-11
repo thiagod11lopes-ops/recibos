@@ -1,5 +1,6 @@
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
 import type { Party, Property } from '../types/receipt'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
 
 export interface ContractDocument {
   seller: Party
@@ -7,6 +8,7 @@ export interface ContractDocument {
   property: Property
   paidNumbers: number[]
   paymentDates: Record<string, string>
+  receiptPdfs: ReceiptPdfsMap
   consultaPermissions: ConsultaPermissions
   publishedConsulta: ConsultaPublishedData | null
   updatedAt: string | null
@@ -22,6 +24,7 @@ export interface ContractRow {
   property: Property
   paid_numbers: number[]
   payment_dates: Record<string, string>
+  receipt_pdfs?: ReceiptPdfsMap | null
   consulta_permissions: ConsultaPermissions
   published_consulta: ConsultaPublishedData | null
   updated_at: string | null

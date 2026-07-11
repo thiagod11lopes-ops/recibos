@@ -22,6 +22,7 @@ import { Button } from './components/ui'
 import { useConsultaSettings } from './hooks/useConsultaSettings'
 import { usePaymentStatus } from './hooks/usePaymentStatus'
 import { useReceiptForm } from './hooks/useReceiptForm'
+import { useContractDatabase } from './context/ContractDatabaseContext'
 import { archivedReceipts } from './utils/monthlyReceipts'
 import { todayISO } from './utils/formatters'
 import { downloadReceiptPdf } from './utils/pdfGenerator'
@@ -68,6 +69,7 @@ export default function App() {
 
   const paymentStatus = usePaymentStatus()
   const consultaSettings = useConsultaSettings()
+  const { saveReceiptPdf, contract } = useContractDatabase()
 
   const {
     data,
@@ -209,6 +211,9 @@ export default function App() {
                   onUpdate={updateInstallment}
                   onGenerateBatch={generateBatch}
                   onGenerateReceipt={handleGenerateReceipt}
+                  onAddPdf={async (installmentNumber, file) => {
+                    await saveReceiptPdf(installmentNumber, file)
+                  }}
                 />
               </div>
 
@@ -241,6 +246,7 @@ export default function App() {
             seller={data.seller}
             buyer={data.buyer}
             property={data.property}
+            receiptPdfs={contract.receiptPdfs}
           />
         ) : activeTab === 'admin' ? (
           <AdministrationTab

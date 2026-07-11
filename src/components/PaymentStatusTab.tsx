@@ -1,10 +1,12 @@
-import { CheckCircle2, Clock, FileDown, FileSpreadsheet, Search } from 'lucide-react'
+import { CheckCircle2, Clock, Eye, FileDown, FileSpreadsheet, Printer, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { Party, Property } from '../types/receipt'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
 import type { usePaymentStatus } from '../hooks/usePaymentStatus'
 import type { InstallmentStatusRow, PaymentStatus } from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { downloadReceiptPdf } from '../utils/pdfGenerator'
+import { openReceiptPdf, printReceiptPdf } from '../utils/receiptPdfStore'
 import { formatCurrency, formatDateBR, generateId } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
@@ -21,6 +23,7 @@ interface PaymentStatusTabProps {
   seller: Party
   buyer: Party
   property: Property
+  receiptPdfs: ReceiptPdfsMap
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -79,6 +82,7 @@ export function PaymentStatusTab({
   seller,
   buyer,
   property,
+  receiptPdfs,
 }: PaymentStatusTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
@@ -220,6 +224,7 @@ export function PaymentStatusTab({
                   seller={seller}
                   buyer={buyer}
                   property={property}
+                  uploadedPdf={receiptPdfs[String(row.number)]}
                 />
               ))}
               {filteredRows.length === 0 && (
@@ -247,6 +252,7 @@ function InstallmentRow({
   seller,
   buyer,
   property,
+  uploadedPdf,
 }: {
   row: InstallmentStatusRow
   checked: boolean
@@ -254,9 +260,11 @@ function InstallmentRow({
   seller: Party
   buyer: Party
   property: Property
+  uploadedPdf?: ReceiptPdfsMap[string]
 }) {
   const isPaid = row.status === 'pago'
   const canGeneratePdf = isPaid && Boolean(row.paymentDate)
+  const hasUploadedPdf = Boolean(uploadedPdf)
 
   const handleGeneratePdf = () => {
     if (!canGeneratePdf || !row.paymentDate) return
@@ -275,6 +283,20 @@ function InstallmentRow({
         generated: true,
       },
     })
+  }
+
+  const handleViewUploaded = async () => {
+    const opened = await openReceiptPdf(row.number, uploadedPdf?.storagePath)
+    if (!opened) {
+      window.alert('PDF não encontrado neste dispositivo. Anexe novamente em Novo Recibo.')
+    }
+  }
+
+  const handlePrintUploaded = async () => {
+    const printed = await printReceiptPdf(row.number, uploadedPdf?.storagePath)
+    if (!printed) {
+      window.alert('Não foi possível abrir o PDF para impressão.')
+    }
   }
 
   return (
@@ -312,16 +334,42 @@ function InstallmentRow({
         <StatusBadge status={row.status} />
       </td>
       <td className="px-4 py-3 text-center">
-        {canGeneratePdf ? (
-          <button
-            type="button"
-            onClick={handleGeneratePdf}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
-            title={`Gerar PDF do recibo da parcela ${row.number}`}
-          >
-            <FileDown className="h-3.5 w-3.5" />
-            PDF
-          </button>
+        {hasUploadedPdf || canGeneratePdf ? (
+          <div className="inline-flex flex-wrap items-center justify-center gap-1.5">
+            {hasUploadedPdf && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void handleViewUploaded()}
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                  title={`Ver PDF anexado: ${uploadedPdf?.fileName}`}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Ver
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handlePrintUploaded()}
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                  title="Imprimir PDF anexado"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Imprimir
+                </button>
+              </>
+            )}
+            {canGeneratePdf && (
+              <button
+                type="button"
+                onClick={handleGeneratePdf}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 transition-colors hover:bg-indigo-500/20"
+                title={`Gerar PDF do recibo da parcela ${row.number}`}
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                PDF
+              </button>
+            )}
+          </div>
         ) : (
           <span className="text-xs text-zinc-600">—</span>
         )}
