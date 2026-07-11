@@ -4,11 +4,13 @@ import {
   FileText,
   ListChecks,
   Plus,
+  Replace,
   Trash2,
   Wand2,
 } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 import type { Installment } from '../types/receipt'
+import type { ReceiptPdfsMap } from '../types/receiptPdf'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { Button, Card } from './ui'
@@ -19,6 +21,7 @@ interface InstallmentsTableProps {
   selectedId: string
   nextPending: InstallmentStatusRow | null
   paidRows: InstallmentStatusRow[]
+  receiptPdfs: ReceiptPdfsMap
   onSelect: (id: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
@@ -40,6 +43,7 @@ export function InstallmentsTable({
   selectedId,
   nextPending,
   paidRows,
+  receiptPdfs,
   onSelect,
   onAdd,
   onRemove,
@@ -52,6 +56,7 @@ export function InstallmentsTable({
 }: InstallmentsTableProps) {
   const canAdd = nextPending !== null
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pdfTargetNumberRef = useRef<number | null>(null)
   const [uploading, setUploading] = useState(false)
   const [showPaid, setShowPaid] = useState(false)
   const [selectedPaid, setSelectedPaid] = useState<Set<number>>(new Set())
@@ -65,6 +70,18 @@ export function InstallmentsTable({
     [paidRows],
   )
 
+  const singleSelectedPaidNumber =
+    selectedPaid.size === 1 ? [...selectedPaid][0] : null
+  const singleSelectedPaidPdf =
+    singleSelectedPaidNumber != null
+      ? receiptPdfs[String(singleSelectedPaidNumber)]
+      : undefined
+
+  const openPdfPicker = (installmentNumber: number) => {
+    pdfTargetNumberRef.current = installmentNumber
+    fileInputRef.current?.click()
+  }
+
   const handleAddPdfClick = () => {
     if (!selectedInstallment) {
       window.alert(
@@ -72,13 +89,25 @@ export function InstallmentsTable({
       )
       return
     }
-    fileInputRef.current?.click()
+    openPdfPicker(selectedInstallment.number)
+  }
+
+  const handlePaidPdfClick = () => {
+    if (singleSelectedPaidNumber == null) {
+      window.alert(
+        'Selecione uma parcela paga no checklist para adicionar ou substituir o PDF.',
+      )
+      return
+    }
+    openPdfPicker(singleSelectedPaidNumber)
   }
 
   const handlePdfSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file || !selectedInstallment) return
+    const targetNumber = pdfTargetNumberRef.current
+    pdfTargetNumberRef.current = null
+    if (!file || targetNumber == null) return
 
     if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
       window.alert('Selecione um arquivo PDF válido.')
@@ -87,7 +116,7 @@ export function InstallmentsTable({
 
     setUploading(true)
     try {
-      await onAddPdf(selectedInstallment.number, file)
+      await onAddPdf(targetNumber, file)
     } catch (error) {
       window.alert(
         error instanceof Error
@@ -219,14 +248,31 @@ export function InstallmentsTable({
                 <FilePlus className="h-3.5 w-3.5" />
                 {uploading ? 'Enviando...' : 'Add PDF'}
               </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf,.pdf"
-                className="hidden"
-                onChange={handlePdfSelected}
-              />
             </>
+          )}
+          {showPaid && singleSelectedPaidNumber != null && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handlePaidPdfClick}
+              disabled={uploading}
+              title={
+                singleSelectedPaidPdf
+                  ? `Substituir PDF da parcela ${singleSelectedPaidNumber} (${singleSelectedPaidPdf.fileName})`
+                  : `Adicionar PDF à parcela ${singleSelectedPaidNumber}`
+              }
+            >
+              {singleSelectedPaidPdf ? (
+                <Replace className="h-3.5 w-3.5" />
+              ) : (
+                <FilePlus className="h-3.5 w-3.5" />
+              )}
+              {uploading
+                ? 'Enviando...'
+                : singleSelectedPaidPdf
+                  ? 'Substituir PDF'
+                  : 'Add PDF'}
+            </Button>
           )}
           {showPaid && (
             <Button
@@ -240,6 +286,13 @@ export function InstallmentsTable({
               Excluir ({selectedPaid.size})
             </Button>
           )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="hidden"
+            onChange={handlePdfSelected}
+          />
           {!showPaid && selectedDraft.size > 0 && (
             <Button
               variant="danger"
@@ -256,8 +309,8 @@ export function InstallmentsTable({
     >
       {showPaid ? (
         <p className="mb-4 text-xs text-zinc-500">
-          Selecione as linhas e use Excluir para remover as parcelas pagas
-          escolhidas (voltam para pendente).
+          Marque uma parcela no checklist para adicionar ou substituir o PDF.
+          Use Excluir para remover as selecionadas (voltam para pendente).
         </p>
       ) : (
         canAdd && (
@@ -291,6 +344,7 @@ export function InstallmentsTable({
                 <th className="px-4 py-3 font-medium">Vencimento</th>
                 <th className="px-4 py-3 font-medium">Data pagamento</th>
                 <th className="px-4 py-3 font-medium">Valor</th>
+                <th className="px-4 py-3 font-medium">PDF</th>
                 <th className="px-4 py-3 font-medium w-16"></th>
               </tr>
             </thead>
@@ -298,7 +352,7 @@ export function InstallmentsTable({
               {paidInstallments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-12 text-center text-zinc-500"
                   >
                     Nenhuma parcela paga cadastrada.
@@ -307,6 +361,7 @@ export function InstallmentsTable({
               ) : (
                 paidInstallments.map((row) => {
                   const checked = selectedPaid.has(row.number)
+                  const uploadedPdf = receiptPdfs[String(row.number)]
                   return (
                     <tr
                       key={row.number}
@@ -343,27 +398,62 @@ export function InstallmentsTable({
                       <td className="px-4 py-3 font-medium text-zinc-200">
                         {formatCurrency(row.value)}
                       </td>
+                      <td className="px-4 py-3">
+                        {uploadedPdf ? (
+                          <span
+                            className="inline-flex max-w-[140px] truncate rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300"
+                            title={uploadedPdf.fileName}
+                          >
+                            {uploadedPdf.fileName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-zinc-600">Sem PDF</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const confirmed = window.confirm(
-                              `Excluir a parcela ${row.number}? Ela voltará para pendente.`,
-                            )
-                            if (!confirmed) return
-                            onRemovePaid([row.number])
-                            setSelectedPaid((prev) => {
-                              const next = new Set(prev)
-                              next.delete(row.number)
-                              return next
-                            })
-                          }}
-                          className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
-                          title="Excluir parcela paga"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedPaid(new Set([row.number]))
+                              openPdfPicker(row.number)
+                            }}
+                            disabled={uploading}
+                            className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-indigo-500/10 hover:text-indigo-400 disabled:opacity-40"
+                            title={
+                              uploadedPdf
+                                ? `Substituir PDF (${uploadedPdf.fileName})`
+                                : 'Adicionar PDF'
+                            }
+                          >
+                            {uploadedPdf ? (
+                              <Replace className="h-4 w-4" />
+                            ) : (
+                              <FilePlus className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const confirmed = window.confirm(
+                                `Excluir a parcela ${row.number}? Ela voltará para pendente.`,
+                              )
+                              if (!confirmed) return
+                              onRemovePaid([row.number])
+                              setSelectedPaid((prev) => {
+                                const next = new Set(prev)
+                                next.delete(row.number)
+                                return next
+                              })
+                            }}
+                            className="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                            title="Excluir parcela paga"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

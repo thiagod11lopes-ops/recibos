@@ -207,6 +207,7 @@ export default function App() {
                   selectedId={selectedId}
                   nextPending={nextPendingInstallment}
                   paidRows={paymentStatus.rows}
+                  receiptPdfs={contract.receiptPdfs}
                   onSelect={setSelectedId}
                   onAdd={addInstallment}
                   onRemove={removeInstallment}
