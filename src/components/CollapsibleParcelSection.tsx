@@ -15,27 +15,27 @@ export function CollapsibleParcelSection({
   children,
 }: CollapsibleParcelSectionProps) {
   const [expanded, setExpanded] = useState(false)
-  const [allowPortraitTable, setAllowPortraitTable] = useState(false)
+  const [skipOrientationPrompt, setSkipOrientationPrompt] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
   const { isCompactDevice, isLandscape } = useViewportMode()
 
   const showRotateModal =
-    expanded && isCompactDevice && !isLandscape && !allowPortraitTable
+    expanded && isCompactDevice && !isLandscape && !skipOrientationPrompt
   const showTable =
-    expanded && (!isCompactDevice || isLandscape || allowPortraitTable)
+    expanded && (!isCompactDevice || isLandscape || skipOrientationPrompt)
   const immersive = showTable && isCompactDevice && isLandscape
 
   useEffect(() => {
     if (!expanded) {
-      setAllowPortraitTable(false)
+      setSkipOrientationPrompt(false)
     }
   }, [expanded])
 
   useEffect(() => {
-    if (isLandscape) {
-      setAllowPortraitTable(false)
+    if (expanded && isCompactDevice && isLandscape) {
+      setSkipOrientationPrompt(true)
     }
-  }, [isLandscape])
+  }, [expanded, isCompactDevice, isLandscape])
 
   useEffect(() => {
     if (!immersive || !sectionRef.current) return
@@ -133,7 +133,7 @@ export function CollapsibleParcelSection({
 
       <RotateToLandscapeModal
         open={showRotateModal}
-        onCancel={() => setAllowPortraitTable(true)}
+        onCancel={() => setSkipOrientationPrompt(true)}
       />
     </>
   )
