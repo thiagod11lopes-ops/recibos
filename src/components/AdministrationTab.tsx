@@ -10,7 +10,7 @@ interface AdministrationTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
   consultaUrl: string
-  storage: 'supabase' | 'local'
+  storage?: 'local'
   loading: boolean
   error: string | null
   onPermissionChange: (key: keyof ConsultaPermissions, value: boolean) => void

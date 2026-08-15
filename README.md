@@ -77,82 +77,30 @@ npm run preview
 - React 19 + TypeScript
 - Vite 8
 - Tailwind CSS 4
-- Supabase (PostgreSQL + Realtime)
+- Armazenamento local (localStorage + IndexedDB)
 - jsPDF + jspdf-autotable
 - Lucide React
+- PDF.js (visualização de PDFs anexados)
 
-## Supabase
+## Armazenamento de dados
 
-O sistema persiste contrato, status de pagamento, permissões e dados publicados para consulta.
+Os dados do contrato, status de pagamento, permissões de consulta e PDFs anexados ficam no **navegador**:
 
-### Configuração local
+- **localStorage** — contrato, parcelas pagas, consulta publicada
+- **IndexedDB** — arquivos PDF anexados
 
-1. Crie um projeto em [Supabase](https://supabase.com/dashboard)
-2. No **SQL Editor**, execute a migration em [`supabase/migrations/`](supabase/migrations/) **ou** conecte o GitHub (abaixo) para aplicar automaticamente
-3. Em **Project Settings → API**, copie a URL e a `anon` key
-4. Copie `.env.example` para `.env` e preencha:
-
-```bash
-VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=sua_anon_key
-VITE_SUPABASE_CONTRACT_ID=default
-```
-
-5. Reinicie `npm run dev`
-
-### Integração GitHub (tela de Integrações)
-
-No projeto Supabase → **Configurações → Integrações → GitHub**:
-
-| Campo | Valor correto |
-|-------|----------------|
-| Repositório | `thiagod11lopes-ops/recibos` |
-| Diretório de trabalho | `.` *(não* `supabase/`*)* |
-| Implantar em produção | ligado |
-| Branch de produção | `main` |
-
-O diretório de trabalho deve ser o caminho **até a pasta que contém** `supabase/`. Como `supabase/` está na raiz do repositório, use `.`.
-
-A integração aplica automaticamente os arquivos em `supabase/migrations/` a cada push/merge em `main`.
-
-### Tabela `contracts`
-
-| Coluna | Tipo | Conteúdo |
-|--------|------|----------|
-| `id` | text | ID do contrato (`default`) |
-| `seller` | jsonb | Vendedor |
-| `buyer` | jsonb | Comprador |
-| `property` | jsonb | Imóvel |
-| `paid_numbers` | integer[] | Parcelas pagas |
-| `payment_dates` | jsonb | Datas de pagamento |
-| `consulta_permissions` | jsonb | Visibilidade na consulta |
-| `published_consulta` | jsonb | Snapshot publicado |
-| `updated_at` | timestamptz | Última atualização |
-
-### GitHub Pages + Supabase
-
-Adicione os secrets em **Settings → Secrets → Actions**:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_SUPABASE_CONTRACT_ID` (opcional; padrão `default`)
-
-Sem as variáveis, o sistema funciona em modo **local** (dados no navegador).
+Não é necessário configurar banco remoto no momento. A integração com **Firebase** poderá ser adicionada depois.
 
 ## Estrutura do projeto
 
 ```
 src/
 ├── components/     # UI e abas da aplicação
-├── context/        # Provider do banco de dados
-├── supabase/       # Cliente e repositório Supabase
-├── data/           # Dados padrão do contrato
+├── context/        # Provider de dados do contrato
+├── data/           # Repositório local e dados padrão
 ├── hooks/          # Estado do formulário e pagamentos
 ├── types/          # Tipos TypeScript
 └── utils/          # PDF, HTML, formatadores e exportação
-supabase/
-├── config.toml
-└── migrations/     # DDL + RLS + Realtime
 ```
 
 ## Publicar no GitHub

@@ -2,31 +2,26 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
-import type { Party, Property } from '../types/receipt'
+import type { Property } from '../types/receipt'
 import type { ReceiptPdfMeta } from '../types/receiptPdf'
 import type { InstallmentStatusRow } from '../utils/installmentStatus'
 import type { getPaymentSummary } from '../utils/installmentStatus'
 import {
-  createDefaultContractDocument,
   loadLocalContractDocument,
-  patchRemoteContract,
   saveLocalContractDocument,
-  subscribeRemoteContract,
-} from '../supabase/contractRepository'
-import { isSupabaseConfigured } from '../supabase/config'
-import type { ContractDocument, ContractPatch } from '../supabase/types'
+} from '../data/contractRepository'
+import type { ContractDocument, ContractPatch } from '../data/types'
 import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
 import { saveReceiptPdfFile } from '../utils/receiptPdfStore'
 
 interface PublishInput {
-  seller: Party
-  buyer: Party
+  seller: ContractDocument['seller']
+  buyer: ContractDocument['buyer']
   property: Property
   rows: InstallmentStatusRow[]
   summary: ReturnType<typeof getPaymentSummary>
@@ -36,7 +31,7 @@ interface PublishInput {
 interface ContractDatabaseContextValue {
   loading: boolean
   error: string | null
-  storage: 'supabase' | 'local'
+  storage: 'local'
   contract: ContractDocument
   patchContract: (patch: ContractPatch) => Promise<void>
   updateSeller: (field: 'name' | 'cpf', value: string) => Promise<void>
@@ -61,47 +56,11 @@ const ContractDatabaseContext = createContext<ContractDatabaseContextValue | nul
   null,
 )
 
-async function persistContract(
-  next: ContractDocument,
-  patch: ContractPatch,
-  storage: 'supabase' | 'local',
-): Promise<void> {
-  if (storage === 'supabase') {
-    await patchRemoteContract(patch)
-    return
-  }
-  saveLocalContractDocument(next)
-}
-
 export function ContractDatabaseProvider({ children }: { children: ReactNode }) {
-  const storage: 'supabase' | 'local' = isSupabaseConfigured()
-    ? 'supabase'
-    : 'local'
   const [contract, setContract] = useState<ContractDocument>(() =>
-    storage === 'local'
-      ? loadLocalContractDocument()
-      : createDefaultContractDocument(),
+    loadLocalContractDocument(),
   )
-  const [loading, setLoading] = useState(storage === 'supabase')
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (storage !== 'supabase') return
-
-    const unsubscribe = subscribeRemoteContract(
-      (document) => {
-        setContract(document)
-        setLoading(false)
-        setError(null)
-      },
-      (message) => {
-        setError(message)
-        setLoading(false)
-      },
-    )
-
-    return unsubscribe
-  }, [storage])
 
   const patchContract = useCallback(
     async (patch: ContractPatch) => {
@@ -122,7 +81,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       setContract(next)
 
       try {
-        await persistContract(next, patch, storage)
+        saveLocalContractDocument(next)
         setError(null)
       } catch (persistError) {
         setError(
@@ -133,7 +92,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
         throw persistError
       }
     },
-    [contract, storage],
+    [contract],
   )
 
   const updateSeller = useCallback(
@@ -267,7 +226,6 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       const meta: ReceiptPdfMeta = {
         fileName: saved.fileName,
         uploadedAt: saved.uploadedAt,
-        storagePath: saved.storagePath,
       }
       await patchContract({
         receiptPdfs: {
@@ -282,9 +240,9 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
 
   const value = useMemo<ContractDatabaseContextValue>(
     () => ({
-      loading,
+      loading: false,
       error,
-      storage,
+      storage: 'local',
       contract,
       patchContract,
       updateSeller,
@@ -299,9 +257,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       saveReceiptPdf,
     }),
     [
-      loading,
       error,
-      storage,
       contract,
       patchContract,
       updateSeller,
