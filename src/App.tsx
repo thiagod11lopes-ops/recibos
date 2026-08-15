@@ -69,7 +69,7 @@ export default function App() {
 
   const paymentStatus = usePaymentStatus()
   const consultaSettings = useConsultaSettings()
-  const { saveReceiptPdf, contract } = useContractDatabase()
+  const { saveReceiptPdf, deleteReceiptPdf, contract } = useContractDatabase()
 
   const {
     data,
@@ -266,6 +266,9 @@ export default function App() {
             receiptPdfs={contract.receiptPdfs}
             onAddPdf={async (installmentNumber, file) => {
               await saveReceiptPdf(installmentNumber, file)
+            }}
+            onDeletePdf={async (installmentNumber) => {
+              await deleteReceiptPdf(installmentNumber)
             }}
           />
         ) : activeTab === 'admin' ? (

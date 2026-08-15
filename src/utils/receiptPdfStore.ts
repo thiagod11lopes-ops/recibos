@@ -158,3 +158,28 @@ export async function printReceiptPdf(
   window.setTimeout(() => URL.revokeObjectURL(url), 120_000)
   return true
 }
+
+export async function deleteReceiptPdfFile(
+  installmentNumber: number,
+  storagePath?: string,
+): Promise<void> {
+  const db = await openDb()
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    tx.objectStore(STORE_NAME).delete(installmentNumber)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () =>
+      reject(tx.error ?? new Error('Falha ao excluir PDF localmente.'))
+  })
+  db.close()
+
+  if (!isSupabaseConfigured()) return
+
+  const path = storagePath || storagePathFor(installmentNumber)
+  try {
+    const supabase = getSupabaseClient()
+    await supabase.storage.from(RECEIPT_PDF_BUCKET).remove([path])
+  } catch {
+    // Metadados locais já foram removidos; falha remota não bloqueia.
+  }
+}

@@ -24,7 +24,10 @@ import {
   subscribeRemoteContract,
 } from '../supabase/contractRepository'
 import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
-import { saveReceiptPdfFile } from '../utils/receiptPdfStore'
+import {
+  deleteReceiptPdfFile,
+  saveReceiptPdfFile,
+} from '../utils/receiptPdfStore'
 
 interface PublishInput {
   seller: ContractDocument['seller']
@@ -57,6 +60,7 @@ interface ContractDatabaseContextValue {
     installmentNumber: number,
     file: File,
   ) => Promise<ReceiptPdfMeta>
+  deleteReceiptPdf: (installmentNumber: number) => Promise<void>
 }
 
 const ContractDatabaseContext = createContext<ContractDatabaseContextValue | null>(
@@ -282,6 +286,18 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
     [contract.receiptPdfs, patchContract],
   )
 
+  const deleteReceiptPdf = useCallback(
+    async (installmentNumber: number) => {
+      const key = String(installmentNumber)
+      const existing = contract.receiptPdfs[key]
+      await deleteReceiptPdfFile(installmentNumber, existing?.storagePath)
+      const nextPdfs = { ...contract.receiptPdfs }
+      delete nextPdfs[key]
+      await patchContract({ receiptPdfs: nextPdfs })
+    },
+    [contract.receiptPdfs, patchContract],
+  )
+
   const value = useMemo<ContractDatabaseContextValue>(
     () => ({
       loading,
@@ -299,6 +315,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       resetPermissions,
       publishForConsulta,
       saveReceiptPdf,
+      deleteReceiptPdf,
     }),
     [
       loading,
@@ -316,6 +333,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       resetPermissions,
       publishForConsulta,
       saveReceiptPdf,
+      deleteReceiptPdf,
     ],
   )
 

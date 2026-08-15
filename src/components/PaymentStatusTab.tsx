@@ -8,6 +8,7 @@ import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
 import { CollapsibleParcelSection } from './CollapsibleParcelSection'
+import { DeletePdfButton } from './DeletePdfButton'
 import { UploadedPdfActions } from './UploadedPdfActions'
 import { Button } from './ui'
 
@@ -24,6 +25,7 @@ interface PaymentStatusTabProps {
   property: Property
   receiptPdfs: ReceiptPdfsMap
   onAddPdf: (installmentNumber: number, file: File) => Promise<void>
+  onDeletePdf: (installmentNumber: number) => Promise<void>
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -84,6 +86,7 @@ export function PaymentStatusTab({
   property,
   receiptPdfs,
   onAddPdf,
+  onDeletePdf,
 }: PaymentStatusTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
@@ -202,7 +205,7 @@ export function PaymentStatusTab({
 
       <CollapsibleParcelSection>
         <div className="overflow-x-auto rounded-xl border border-white/6">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[780px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/6 bg-white/3 text-xs uppercase tracking-wider text-zinc-500">
                 <th className="px-4 py-3 font-medium">Parcela</th>
@@ -213,6 +216,7 @@ export function PaymentStatusTab({
                 <th className="px-4 py-3 text-center font-medium">Pago</th>
                 <th className="px-4 py-3 font-medium text-right">Status</th>
                 <th className="px-4 py-3 text-center font-medium">Gerar PDF</th>
+                <th className="px-4 py-3 text-center font-medium">Excluir</th>
               </tr>
             </thead>
             <tbody>
@@ -224,12 +228,13 @@ export function PaymentStatusTab({
                   onToggle={() => onTogglePaid(row.number)}
                   uploadedPdf={receiptPdfs[String(row.number)]}
                   onAddPdf={onAddPdf}
+                  onDeletePdf={onDeletePdf}
                 />
               ))}
               {filteredRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-12 text-center text-zinc-500"
                   >
                     Nenhuma parcela encontrada para esta busca.
@@ -250,12 +255,14 @@ function InstallmentRow({
   onToggle,
   uploadedPdf,
   onAddPdf,
+  onDeletePdf,
 }: {
   row: InstallmentStatusRow
   checked: boolean
   onToggle: () => void
   uploadedPdf?: ReceiptPdfsMap[string]
   onAddPdf: (installmentNumber: number, file: File) => Promise<void>
+  onDeletePdf: (installmentNumber: number) => Promise<void>
 }) {
   const isPaid = row.status === 'pago'
 
@@ -300,6 +307,17 @@ function InstallmentRow({
           allowAdd={isPaid}
           onAddPdf={onAddPdf}
         />
+      </td>
+      <td className="px-4 py-3 text-center">
+        {uploadedPdf ? (
+          <DeletePdfButton
+            installmentNumber={row.number}
+            fileName={uploadedPdf.fileName}
+            onDelete={onDeletePdf}
+          />
+        ) : (
+          <span className="text-xs text-zinc-600">—</span>
+        )}
       </td>
     </tr>
   )
