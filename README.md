@@ -77,19 +77,39 @@ npm run preview
 - React 19 + TypeScript
 - Vite 8
 - Tailwind CSS 4
-- Armazenamento local (localStorage + IndexedDB)
+- Supabase (PostgreSQL + Realtime + Storage)
 - jsPDF + jspdf-autotable
 - Lucide React
 - PDF.js (visualização de PDFs anexados)
 
-## Armazenamento de dados
+## Supabase
 
-Os dados do contrato, status de pagamento, permissões de consulta e PDFs anexados ficam no **navegador**:
+O sistema persiste contrato, status de pagamento, permissões, consulta e PDFs.
 
-- **localStorage** — contrato, parcelas pagas, consulta publicada
-- **IndexedDB** — arquivos PDF anexados
+### Configuração local
 
-Não é necessário configurar banco remoto no momento. A integração com **Firebase** poderá ser adicionada depois.
+1. Crie um projeto em [Supabase](https://supabase.com/dashboard)
+2. No **SQL Editor**, execute o schema (tabela `contracts` + bucket `receipt-pdfs`)
+3. Em **Project Settings → API**, copie a URL e a chave `anon`
+4. Copie `.env.example` para `.env` e preencha:
+
+```bash
+VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=sua_anon_key
+VITE_SUPABASE_CONTRACT_ID=default
+```
+
+5. Reinicie `npm run dev`
+
+Sem as variáveis, o app funciona em modo **local** (navegador).
+
+### GitHub Pages
+
+Adicione os secrets em **Settings → Secrets → Actions**:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_CONTRACT_ID` (opcional; padrão `default`)
 
 ## Estrutura do projeto
 
@@ -98,6 +118,7 @@ src/
 ├── components/     # UI e abas da aplicação
 ├── context/        # Provider de dados do contrato
 ├── data/           # Repositório local e dados padrão
+├── supabase/       # Cliente e sincronização remota
 ├── hooks/          # Estado do formulário e pagamentos
 ├── types/          # Tipos TypeScript
 └── utils/          # PDF, HTML, formatadores e exportação

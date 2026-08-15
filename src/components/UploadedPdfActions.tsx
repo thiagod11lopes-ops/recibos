@@ -33,7 +33,10 @@ export function UploadedPdfActions({
   const handleView = async () => {
     setBusy(true)
     try {
-      const url = await createReceiptPdfObjectUrl(installmentNumber)
+      const url = await createReceiptPdfObjectUrl(
+        installmentNumber,
+        uploadedPdf.storagePath,
+      )
       if (!url) {
         window.alert(
           'PDF anexado não encontrado. Anexe novamente em Parcelas Pagas.',
@@ -55,6 +58,7 @@ export function UploadedPdfActions({
       const downloaded = await downloadUploadedReceiptPdf(
         installmentNumber,
         uploadedPdf.fileName,
+        uploadedPdf.storagePath,
       )
       if (!downloaded) {
         window.alert(

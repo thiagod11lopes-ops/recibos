@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -14,8 +15,14 @@ import type { getPaymentSummary } from '../utils/installmentStatus'
 import {
   loadLocalContractDocument,
   saveLocalContractDocument,
+  createDefaultContractDocument,
 } from '../data/contractRepository'
 import type { ContractDocument, ContractPatch } from '../data/types'
+import { isSupabaseConfigured } from '../supabase/config'
+import {
+  patchRemoteContract,
+  subscribeRemoteContract,
+} from '../supabase/contractRepository'
 import { DEFAULT_CONSULTA_PERMISSIONS } from '../types/consulta'
 import { saveReceiptPdfFile } from '../utils/receiptPdfStore'
 
@@ -31,7 +38,7 @@ interface PublishInput {
 interface ContractDatabaseContextValue {
   loading: boolean
   error: string | null
-  storage: 'local'
+  storage: 'supabase' | 'local'
   contract: ContractDocument
   patchContract: (patch: ContractPatch) => Promise<void>
   updateSeller: (field: 'name' | 'cpf', value: string) => Promise<void>
@@ -56,11 +63,47 @@ const ContractDatabaseContext = createContext<ContractDatabaseContextValue | nul
   null,
 )
 
+async function persistContract(
+  next: ContractDocument,
+  patch: ContractPatch,
+  storage: 'supabase' | 'local',
+): Promise<void> {
+  if (storage === 'supabase') {
+    await patchRemoteContract(patch)
+    return
+  }
+  saveLocalContractDocument(next)
+}
+
 export function ContractDatabaseProvider({ children }: { children: ReactNode }) {
+  const storage: 'supabase' | 'local' = isSupabaseConfigured()
+    ? 'supabase'
+    : 'local'
   const [contract, setContract] = useState<ContractDocument>(() =>
-    loadLocalContractDocument(),
+    storage === 'local'
+      ? loadLocalContractDocument()
+      : createDefaultContractDocument(),
   )
+  const [loading, setLoading] = useState(storage === 'supabase')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (storage !== 'supabase') return
+
+    const unsubscribe = subscribeRemoteContract(
+      (document) => {
+        setContract(document)
+        setLoading(false)
+        setError(null)
+      },
+      (message) => {
+        setError(message)
+        setLoading(false)
+      },
+    )
+
+    return unsubscribe
+  }, [storage])
 
   const patchContract = useCallback(
     async (patch: ContractPatch) => {
@@ -81,7 +124,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       setContract(next)
 
       try {
-        saveLocalContractDocument(next)
+        await persistContract(next, patch, storage)
         setError(null)
       } catch (persistError) {
         setError(
@@ -92,7 +135,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
         throw persistError
       }
     },
-    [contract],
+    [contract, storage],
   )
 
   const updateSeller = useCallback(
@@ -226,6 +269,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       const meta: ReceiptPdfMeta = {
         fileName: saved.fileName,
         uploadedAt: saved.uploadedAt,
+        storagePath: saved.storagePath,
       }
       await patchContract({
         receiptPdfs: {
@@ -240,9 +284,9 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
 
   const value = useMemo<ContractDatabaseContextValue>(
     () => ({
-      loading: false,
+      loading,
       error,
-      storage: 'local',
+      storage,
       contract,
       patchContract,
       updateSeller,
@@ -257,7 +301,9 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
       saveReceiptPdf,
     }),
     [
+      loading,
       error,
+      storage,
       contract,
       patchContract,
       updateSeller,

@@ -1,3 +1,6 @@
+import { CONTRACT_ID, RECEIPT_PDF_BUCKET } from '../supabase/constants'
+import { getSupabaseClient, isSupabaseConfigured } from '../supabase/config'
+
 const DB_NAME = 'recibos-receipt-pdfs'
 const STORE_NAME = 'pdfs'
 const DB_VERSION = 1
@@ -23,10 +26,14 @@ function openDb(): Promise<IDBDatabase> {
   })
 }
 
+function storagePathFor(installmentNumber: number): string {
+  return `${CONTRACT_ID}/${installmentNumber}.pdf`
+}
+
 export async function saveReceiptPdfFile(
   installmentNumber: number,
   file: File,
-): Promise<{ fileName: string; uploadedAt: string }> {
+): Promise<{ fileName: string; uploadedAt: string; storagePath?: string }> {
   const uploadedAt = new Date().toISOString()
   const blob = file.slice(0, file.size, 'application/pdf')
 
@@ -44,11 +51,29 @@ export async function saveReceiptPdfFile(
   })
   db.close()
 
-  return { fileName: file.name, uploadedAt }
+  let storagePath: string | undefined
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = getSupabaseClient()
+      const path = storagePathFor(installmentNumber)
+      const { error } = await supabase.storage
+        .from(RECEIPT_PDF_BUCKET)
+        .upload(path, file, {
+          upsert: true,
+          contentType: 'application/pdf',
+        })
+      if (!error) storagePath = path
+    } catch {
+      // Mantém apenas o armazenamento local se o upload remoto falhar.
+    }
+  }
+
+  return { fileName: file.name, uploadedAt, storagePath }
 }
 
 export async function getReceiptPdfBlob(
   installmentNumber: number,
+  storagePath?: string,
 ): Promise<Blob | null> {
   const db = await openDb()
   const local = await new Promise<StoredPdf | undefined>((resolve, reject) => {
@@ -59,11 +84,24 @@ export async function getReceiptPdfBlob(
   })
   db.close()
 
-  return local?.blob ?? null
+  if (local?.blob) return local.blob
+
+  if (storagePath && isSupabaseConfigured()) {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.storage
+      .from(RECEIPT_PDF_BUCKET)
+      .download(storagePath)
+    if (!error && data) return data
+  }
+
+  return null
 }
 
-export async function openReceiptPdf(installmentNumber: number): Promise<boolean> {
-  const blob = await getReceiptPdfBlob(installmentNumber)
+export async function openReceiptPdf(
+  installmentNumber: number,
+  storagePath?: string,
+): Promise<boolean> {
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
   if (!blob) return false
   const url = URL.createObjectURL(blob)
   window.open(url, '_blank', 'noopener,noreferrer')
@@ -73,8 +111,9 @@ export async function openReceiptPdf(installmentNumber: number): Promise<boolean
 
 export async function createReceiptPdfObjectUrl(
   installmentNumber: number,
+  storagePath?: string,
 ): Promise<string | null> {
-  const blob = await getReceiptPdfBlob(installmentNumber)
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
   if (!blob) return null
   return URL.createObjectURL(blob)
 }
@@ -82,8 +121,9 @@ export async function createReceiptPdfObjectUrl(
 export async function downloadUploadedReceiptPdf(
   installmentNumber: number,
   fileName: string,
+  storagePath?: string,
 ): Promise<boolean> {
-  const blob = await getReceiptPdfBlob(installmentNumber)
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
   if (!blob) return false
 
   const url = URL.createObjectURL(blob)
@@ -99,8 +139,9 @@ export async function downloadUploadedReceiptPdf(
 
 export async function printReceiptPdf(
   installmentNumber: number,
+  storagePath?: string,
 ): Promise<boolean> {
-  const blob = await getReceiptPdfBlob(installmentNumber)
+  const blob = await getReceiptPdfBlob(installmentNumber, storagePath)
   if (!blob) return false
 
   const url = URL.createObjectURL(blob)
