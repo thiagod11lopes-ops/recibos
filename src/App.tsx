@@ -264,6 +264,9 @@ export default function App() {
             buyer={data.buyer}
             property={data.property}
             receiptPdfs={contract.receiptPdfs}
+            onAddPdf={async (installmentNumber, file) => {
+              await saveReceiptPdf(installmentNumber, file)
+            }}
           />
         ) : activeTab === 'admin' ? (
           <AdministrationTab

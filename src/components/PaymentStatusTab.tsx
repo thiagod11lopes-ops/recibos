@@ -23,6 +23,7 @@ interface PaymentStatusTabProps {
   buyer: Party
   property: Property
   receiptPdfs: ReceiptPdfsMap
+  onAddPdf: (installmentNumber: number, file: File) => Promise<void>
 }
 
 function StatusBadge({ status }: { status: PaymentStatus }) {
@@ -82,6 +83,7 @@ export function PaymentStatusTab({
   buyer,
   property,
   receiptPdfs,
+  onAddPdf,
 }: PaymentStatusTabProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
@@ -221,6 +223,7 @@ export function PaymentStatusTab({
                   checked={isPaid(row.number)}
                   onToggle={() => onTogglePaid(row.number)}
                   uploadedPdf={receiptPdfs[String(row.number)]}
+                  onAddPdf={onAddPdf}
                 />
               ))}
               {filteredRows.length === 0 && (
@@ -246,11 +249,13 @@ function InstallmentRow({
   checked,
   onToggle,
   uploadedPdf,
+  onAddPdf,
 }: {
   row: InstallmentStatusRow
   checked: boolean
   onToggle: () => void
   uploadedPdf?: ReceiptPdfsMap[string]
+  onAddPdf: (installmentNumber: number, file: File) => Promise<void>
 }) {
   const isPaid = row.status === 'pago'
 
@@ -292,6 +297,8 @@ function InstallmentRow({
         <UploadedPdfActions
           installmentNumber={row.number}
           uploadedPdf={uploadedPdf}
+          allowAdd={isPaid}
+          onAddPdf={onAddPdf}
         />
       </td>
     </tr>
