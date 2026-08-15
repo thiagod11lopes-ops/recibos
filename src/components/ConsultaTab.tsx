@@ -2,7 +2,10 @@ import { CheckCircle2, Clock, Eye, FileSpreadsheet, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ConsultaPermissions, ConsultaPublishedData } from '../types/consulta'
 import type { ReceiptPdfsMap } from '../types/receiptPdf'
-import type { PaymentStatus } from '../utils/installmentStatus'
+import type {
+  InstallmentStatusRow,
+  PaymentStatus,
+} from '../utils/installmentStatus'
 import { exportPaymentTable } from '../utils/paymentTableExport'
 import { formatCurrency, formatDateBR } from '../utils/formatters'
 import { ExportFormatModal } from './ExportFormatModal'
@@ -13,6 +16,10 @@ import { Button, Card } from './ui'
 interface ConsultaTabProps {
   permissions: ConsultaPermissions
   publishedData: ConsultaPublishedData | null
+  /** Status atual do contrato (ao vivo). Se informado, prevalece sobre o snapshot publicado. */
+  liveRows?: InstallmentStatusRow[]
+  liveSummary?: ConsultaPublishedData['summary']
+  liveTotalCount?: number
   receiptPdfs?: ReceiptPdfsMap
   isPublicMode?: boolean
 }
@@ -55,6 +62,9 @@ function InfoBlock({
 export function ConsultaTab({
   permissions,
   publishedData,
+  liveRows,
+  liveSummary,
+  liveTotalCount,
   receiptPdfs,
   isPublicMode = false,
 }: ConsultaTabProps) {
@@ -62,10 +72,14 @@ export function ConsultaTab({
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'all'>('all')
   const [exportModalOpen, setExportModalOpen] = useState(false)
 
+  const tableRows = liveRows ?? publishedData?.rows ?? []
+  const summary = liveSummary ?? publishedData?.summary
+  const totalCount = liveTotalCount ?? publishedData?.totalCount ?? tableRows.length
+
   const filteredRows = useMemo(() => {
     if (!publishedData || !permissions.installmentTable) return []
     const query = search.trim().toLowerCase()
-    return publishedData.rows.filter((row) => {
+    return tableRows.filter((row) => {
       if (statusFilter !== 'all' && row.status !== statusFilter) return false
       if (!query) return true
       return (
@@ -75,7 +89,13 @@ export function ConsultaTab({
         (row.paymentDate && formatDateBR(row.paymentDate).includes(query))
       )
     })
-  }, [publishedData, permissions.installmentTable, search, statusFilter])
+  }, [
+    publishedData,
+    permissions.installmentTable,
+    search,
+    statusFilter,
+    tableRows,
+  ])
 
   const pdfMap = useMemo<ReceiptPdfsMap>(
     () => ({
@@ -102,7 +122,7 @@ export function ConsultaTab({
     (permissions.showStatus ? 1 : 0) +
     (permissions.showPdfActions ? 1 : 0)
 
-  if (!publishedData) {
+  if (!publishedData || !summary) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <Eye className="mb-4 h-12 w-12 text-zinc-600" />
@@ -118,7 +138,7 @@ export function ConsultaTab({
     )
   }
 
-  const { seller, buyer, property, summary, totalCount } = publishedData
+  const { seller, buyer, property } = publishedData
 
   return (
     <div className="space-y-6">
@@ -243,7 +263,7 @@ export function ConsultaTab({
               seller,
               buyer,
               property,
-              publishedData.rows,
+              tableRows,
             )
           }
         />

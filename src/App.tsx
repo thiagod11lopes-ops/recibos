@@ -152,6 +152,9 @@ export default function App() {
             <ConsultaTab
               permissions={consultaSettings.permissions}
               publishedData={consultaSettings.publishedData}
+              liveRows={paymentStatus.rows}
+              liveSummary={paymentStatus.summary}
+              liveTotalCount={paymentStatus.totalCount}
               receiptPdfs={contract.receiptPdfs}
               isPublicMode
             />
@@ -278,6 +281,9 @@ export default function App() {
           <ConsultaTab
             permissions={consultaSettings.permissions}
             publishedData={consultaSettings.publishedData}
+            liveRows={paymentStatus.rows}
+            liveSummary={paymentStatus.summary}
+            liveTotalCount={paymentStatus.totalCount}
             receiptPdfs={contract.receiptPdfs}
           />
         )}
