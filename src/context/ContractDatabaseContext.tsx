@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -17,6 +18,7 @@ import {
   saveLocalContractDocument,
   createDefaultContractDocument,
 } from '../data/contractRepository'
+import { offlineContractDocument } from '../data/offlineContract'
 import type { ContractDocument, ContractPatch } from '../data/types'
 import { isSupabaseConfigured } from '../supabase/config'
 import {
@@ -41,6 +43,7 @@ interface PublishInput {
 interface ContractDatabaseContextValue {
   loading: boolean
   error: string | null
+  notice: string | null
   storage: 'supabase' | 'local'
   contract: ContractDocument
   patchContract: (patch: ContractPatch) => Promise<void>
@@ -80,34 +83,51 @@ async function persistContract(
 }
 
 export function ContractDatabaseProvider({ children }: { children: ReactNode }) {
-  const storage: 'supabase' | 'local' = isSupabaseConfigured()
-    ? 'supabase'
-    : 'local'
-  const [contract, setContract] = useState<ContractDocument>(() =>
-    storage === 'local'
-      ? loadLocalContractDocument()
-      : createDefaultContractDocument(),
+  const remoteConfigured = isSupabaseConfigured()
+  const [storage, setStorage] = useState<'supabase' | 'local'>(
+    remoteConfigured ? 'supabase' : 'local',
   )
-  const [loading, setLoading] = useState(storage === 'supabase')
+  const [contract, setContract] = useState<ContractDocument>(() =>
+    remoteConfigured
+      ? createDefaultContractDocument()
+      : loadLocalContractDocument(),
+  )
+  const [loading, setLoading] = useState(remoteConfigured)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const loadedFromRemote = useRef(false)
 
   useEffect(() => {
-    if (storage !== 'supabase') return
+    if (!remoteConfigured) return
 
     const unsubscribe = subscribeRemoteContract(
       (document) => {
+        loadedFromRemote.current = true
         setContract(document)
+        setStorage('supabase')
+        setNotice(null)
         setLoading(false)
         setError(null)
       },
       (message) => {
-        setError(message)
+        if (!loadedFromRemote.current) {
+          const copy = offlineContractDocument
+          setContract(copy)
+          saveLocalContractDocument(copy)
+          setStorage('local')
+          setNotice(
+            'O Supabase não respondeu. A consulta está usando a cópia salva em 15/08/2026.',
+          )
+          setError(null)
+        } else {
+          setError(message)
+        }
         setLoading(false)
       },
     )
 
     return unsubscribe
-  }, [storage])
+  }, [remoteConfigured])
 
   const patchContract = useCallback(
     async (patch: ContractPatch) => {
@@ -302,6 +322,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
     () => ({
       loading,
       error,
+      notice,
       storage,
       contract,
       patchContract,
@@ -320,6 +341,7 @@ export function ContractDatabaseProvider({ children }: { children: ReactNode }) 
     [
       loading,
       error,
+      notice,
       storage,
       contract,
       patchContract,

@@ -147,6 +147,7 @@ export default function App() {
             <DatabaseStatusBanner
               loading={consultaSettings.loading}
               error={consultaSettings.error}
+              notice={consultaSettings.notice}
               storage={consultaSettings.storage}
             />
             <ConsultaTab

@@ -25,6 +25,7 @@ export function useConsultaSettings() {
     storage,
     loading,
     error,
+    notice,
     setPermission,
     resetPermissions,
     publishForConsulta,
@@ -46,6 +47,7 @@ export function useConsultaSettings() {
     storage,
     loading,
     error,
+    notice,
     setPermission: (key: Parameters<typeof setPermission>[0], value: boolean) => {
       void setPermission(key, value)
     },

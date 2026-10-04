@@ -4,12 +4,14 @@ import type { ReactNode } from 'react'
 interface DatabaseStatusBannerProps {
   loading: boolean
   error: string | null
+  notice?: string | null
   storage: 'supabase' | 'local'
 }
 
 export function DatabaseStatusBanner({
   loading,
   error,
+  notice = null,
   storage,
 }: DatabaseStatusBannerProps) {
   if (loading) {
@@ -25,6 +27,14 @@ export function DatabaseStatusBanner({
     return (
       <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
         Erro ao sincronizar: {error}
+      </div>
+    )
+  }
+
+  if (notice) {
+    return (
+      <div className="mb-6 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        {notice}
       </div>
     )
   }
